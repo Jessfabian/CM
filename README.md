@@ -26,15 +26,15 @@ for installation details and the standalone validator workflow.
 GitHub Pages publishes static files and cannot run the Python validator. A
 Render Blueprint and Dockerfile are included to deploy the API as a separate
 free service for testing. In Render, create a Blueprint from this repository
-and deploy it; the allowed Pages origin is already set to
-`https://jessfabian.github.io` (origins do not include a path). After Render
-deploys, copy the service URL into `scripts/validator-config.js`:
+and deploy it; the allowed Pages origin is set to
+`https://jessfabian.github.io` (origins do not include a path). The service URL
+is configured in `scripts/validator-config.js`:
 
 ```js
-window.VALIDATOR_API_BASE = "https://YOUR-SERVICE.onrender.com";
+window.VALIDATOR_API_BASE = "https://case-manager-validator.onrender.com";
 ```
 
-Publish that config change with the Pages site. The free Render service sleeps
+Publish any config changes with the Pages site. The free Render service sleeps
 after inactivity and has a cold start; it is for testing, not dependable
 production use. This API currently has no user authentication. CORS only limits
 which websites can read responses in a browser; it does not prevent direct API

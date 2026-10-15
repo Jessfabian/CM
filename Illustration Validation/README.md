@@ -52,8 +52,8 @@ checkbox marks that OCR represents as a digit, such as `[1] Annual`.
 GitHub Pages cannot execute the Python API. For a testing deployment, use the
 Render Blueprint at the project root to deploy a separate free backend,
 configured with the `https://jessfabian.github.io` Pages origin,
-then set `window.VALIDATOR_API_BASE` in `scripts/validator-config.js` to the
-Render service URL and publish that change to Pages.
+with `window.VALIDATOR_API_BASE` in `scripts/validator-config.js` set to
+`https://case-manager-validator.onrender.com`.
 
 The free backend sleeps when idle and is not suitable for dependable
 production use. The API has no authentication, and CORS is not access control.

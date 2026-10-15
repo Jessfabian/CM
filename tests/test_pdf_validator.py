@@ -85,6 +85,49 @@ class ApplicationExtractionTests(unittest.TestCase):
 
     self.assertEqual(fields["waiver"].value, "Yes")
 
+  def test_whole_life_rider_choices_and_frequency_use_section_labels(self):
+    pages = [
+      PageText(
+        4,
+        (
+          "Plan: Whole Life 100\n"
+          "C7 Waiver of Premium: [X] Yes [ ] No\n"
+          "C10. Guaranteed Insurability Rider: [ ] Yes [X] No"
+        ),
+        "native",
+      ),
+      PageText(
+        7,
+        "G2. Payment Frequency (Select one): [X] Annual [ ] Monthly",
+        "native",
+      ),
+    ]
+
+    fields = parse_application(pages)
+
+    self.assertEqual(fields["waiver"].value, "Yes")
+    self.assertEqual(fields["gir"].value, "No")
+    self.assertEqual(fields["frequency"].value, "Annual")
+    self.assertEqual(fields["waiver"].matched_label, "C7 Waiver of Premium")
+    self.assertEqual(fields["gir"].matched_label, "C10")
+    self.assertTrue(fields["frequency"].matched_label.startswith("G2"))
+
+  def test_gir_choice_is_read_from_section_c(self):
+    pages = [
+      PageText(
+        4,
+        (
+          "Plan: Whole Life 100\n"
+          "C10. Guaranteed Insurability Rider: [X] Yes [ ] No"
+        ),
+        "native",
+      ),
+    ]
+
+    fields = parse_application(pages)
+
+    self.assertEqual(fields["gir"].value, "Yes")
+
   def test_page_four_waiver_checkbox_is_ocrd_when_native_text_is_readable(self):
     readable_text = (
       "Application for Individual Life " + "insured information " * 15

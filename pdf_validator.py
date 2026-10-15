@@ -742,10 +742,9 @@ def selected_labeled_option(
 ) -> FieldValue:
   for page in pages:
     for match in re.finditer(label_pattern, page.text, re.I):
-      context_start = max(0, match.start() - 40)
       context_end = min(len(page.text), match.end() + 300)
       selected = selected_checkbox_option(
-        page.text[context_start:context_end],
+        page.text[match.start():context_end],
         options,
       )
       if selected:
@@ -934,13 +933,21 @@ def parse_application(
         )
         result["waiver"] = selected_labeled_option(
           pages,
-          r"(?:7|17|18)\s*[\.,]\s*Waiver of Premium",
+          r"(?:C\s*7\s*[\.,:;-]?\s*Waiver of Premium|"
+          r"(?:7|17|18)\s*[\.,]\s*Waiver of Premium)",
           ("Yes", "No"),
           "Waiver of Premium selection",
         )
+        result["gir"] = selected_labeled_option(
+          pages,
+          r"C\s*10\b",
+          ("Yes", "No"),
+          "Section C Guaranteed Insurability Rider selection",
+        )
         result["frequency"] = selected_labeled_option(
           pages,
-          r"(?:2|22)\s*[\.,]\s*Frequency",
+          r"(?:G\s*2\s*[\.,:;-]?\s*(?:Payment\s+)?Frequency|"
+          r"(?:2|22)\s*[\.,]\s*Frequency)",
           ("Monthly", "Quarterly", "Semi-annual", "Annual", "Single Premium"),
           "Payment frequency selection",
         )

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Case queue availability for the local new business case manager prototype."
+    />
+    <title>Case Queue | Case Manager Workspace</title>
+    <link rel="stylesheet" href="../Styling/app.css" />
+    <link rel="stylesheet" href="cases.css" />
+  </head>
+  <body class="cases-page">
+    <header class="ir-header">
+      <nav class="ir-navigation" aria-label="Primary navigation">
+        <ul>
+          <li><a href="../home.html"><img alt="" src="../images/home.png" /><span>Workspace</span></a></li>
+          <li><a href="../index.html"><img alt="" src="../images/Picture5.png" /><span>Initial review</span></a></li>
+          <li><a href="../verbiage-only.html"><img alt="" src="../images/Picture8.png" /><span>Requirements</span></a></li>
+          <li><a href="../forms-library.html"><img alt="" src="../images/Picture6.png" /><span>Forms</span></a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="cases-main">
+      <section class="cases-heading">
+        <div>
+          <p class="cases-eyebrow">NEW BUSINESS</p>
+          <h1>Case queue</h1>
+          <p>Keep work moving from initial review through handoff.</p>
+        </div>
+        <a class="cases-primary-action" href="../index.html">Start an initial review <span aria-hidden="true">→</span></a>
+      </section>
+
+      <section class="cases-notice" aria-labelledby="case-queue-status">
+        <span class="cases-notice-icon" aria-hidden="true">i</span>
+        <div>
+          <h2 id="case-queue-status">Secure case records are not connected</h2>
+          <p>
+            This prototype does not have authenticated case storage or a
+            protected case queue. Case creation, search, and persistence are
+            unavailable. Do not enter real client, insured, or policy
+            information.
+          </p>
+        </div>
+      </section>
+
+      <section class="cases-panel" aria-labelledby="cases-list-title">
+        <div class="cases-panel-heading">
+          <div>
+            <h2 id="cases-list-title">Cases</h2>
+            <p>Case records will appear here when an approved secure service is connected.</p>
+          </div>
+          <span class="cases-count">0 records</span>
+        </div>
+        <div class="cases-empty-state">
+          <span class="cases-empty-icon" aria-hidden="true">—</span>
+          <h3>No case records available</h3>
+          <p>
+            Use the initial review workspace to explore the review workflow
+            with non-sensitive sample information.
+          </p>
+          <a href="../index.html">Open initial review</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

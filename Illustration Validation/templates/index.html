@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Standalone Illustration Validator | Case Manager Workspace</title>
+    <link
+      rel="stylesheet"
+      href="../static/validation.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">MMSD Case Navigator</span>
+        <h1>Standalone Illustration Validator</h1>
+        <p>
+          Validate an illustration independently without completing the full
+          initial-review workflow.
+        </p>
+      </div>
+      <nav class="page-links" aria-label="Workspace navigation">
+        <a href="../../home.html">Workspace home</a>
+        <a href="../../index.html">Full initial review</a>
+      </nav>
+      <span id="serverBadge" class="status pending">
+        Checking Python service…
+      </span>
+    </header>
+
+    <main class="shell">
+      <div class="notice">
+        <strong>Human review required.</strong>
+        Confirm extracted checkboxes, handwriting, signatures, dates, and
+        generated results before case communication.
+        Part 1 extraction is limited to sections A, C, G, N, and the signature
+        block.
+      </div>
+
+      <section class="card controls">
+        <label for="state"><strong>Contract state</strong></label>
+        <select id="state">
+          <option value="">Select state</option>
+          <option value="NY">NY</option>
+          <option value="Other">Other</option>
+        </select>
+        <span id="ruleBadge" class="status pending">Standard rules</span>
+      </section>
+
+      <section class="card upload-card">
+        <h2>1. Add both PDFs</h2>
+        <label id="documentsDrop" class="drop" tabindex="0">
+          <span class="drop-icon">PDF</span>
+          <span class="drop-title">Drop the Part 1 and illustration PDFs here</span>
+          <span class="drop-hint">or click to browse and select both files</span>
+          <input
+            id="documentFiles"
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple />
+        </label>
+        <p class="meta">
+          Files named “Part 1” or “Application” and “Illustration” are assigned
+          automatically. Choose the document type for any unrecognized name.
+        </p>
+        <div id="documentList" class="file-list" aria-live="polite"></div>
+        <div class="upload-progress-grid">
+          <div>
+            <div id="appMeta" class="meta">Part 1: no file selected</div>
+            <div class="progress"><span id="appProgress"></span></div>
+          </div>
+          <div>
+            <div id="illMeta" class="meta">Illustration: no file selected</div>
+            <div class="progress"><span id="illProgress"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <div id="errorBox" class="errorbox"></div>
+      <div id="warningBox" class="warningbox" role="status" hidden></div>
+
+      <div class="toolbar">
+        <button id="extractBtn" class="btn" disabled>
+          Extract and validate
+        </button>
+        <button id="resetBtn" class="btn secondary">Reset</button>
+        <span id="runStatus" class="status pending">Waiting for two PDFs</span>
+      </div>
+
+      <section id="summaryCards" class="summary-grid" hidden>
+        <article>
+          <span>Matches</span>
+          <strong id="matchCount">0</strong>
+        </article>
+        <article>
+          <span>Mismatches</span>
+          <strong id="mismatchCount">0</strong>
+        </article>
+        <article>
+          <span>Manual review</span>
+          <strong id="reviewCount">0</strong>
+        </article>
+        <article>
+          <span>Excluded</span>
+          <strong id="excludedCount">0</strong>
+        </article>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Part 1 extracted values</h2>
+          <div id="appFields" class="fields">
+            <div class="empty">Upload and extract Part 1.</div>
+          </div>
+          <details>
+            <summary>View extracted text</summary>
+            <textarea id="appText" readonly></textarea>
+          </details>
+        </section>
+        <section class="card">
+          <h2>Illustration extracted values</h2>
+          <div id="illFields" class="fields">
+            <div class="empty">Upload and extract the illustration.</div>
+          </div>
+          <details>
+            <summary>View extracted text</summary>
+            <textarea id="illText" readonly></textarea>
+          </details>
+        </section>
+      </div>
+
+      <section class="card full results-card">
+        <h2>3. Validation results</h2>
+        <div id="results" class="empty">No validation has been run.</div>
+      </section>
+    </main>
+    <script src="../static/validation.js"></script>
+  </body>
+</html>

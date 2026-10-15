@@ -1,0 +1,1689 @@
+from __future__ import annotations
+
+import datetime as dt
+import logging
+import os
+import re
+import shutil
+from dataclasses import asdict, dataclass, field as dataclass_field
+from pathlib import Path
+from typing import Any, Callable, Iterable, Optional
+import pdfplumber
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
+
+LOGGER = logging.getLogger("pdf-validator")
+APPLICATION_REVIEW_PAGES = frozenset({1, 4, 7, 13})
+
+# Use an environment variable first. Fall back to Jessie's known local install.
+_DEFAULT_TESSERACT = Path(
+  r"C:\Users\MM04018\AppData\Local\Tesseract-OCR\tesseract.exe")
+if os.getenv("TESSERACT_CMD"):
+  pytesseract.pytesseract.tesseract_cmd = os.environ["TESSERACT_CMD"]
+elif _DEFAULT_TESSERACT.exists():
+  pytesseract.pytesseract.tesseract_cmd = str(_DEFAULT_TESSERACT)
+
+
+def configure_tesseract_data() -> None:
+  configured_prefix = os.environ.get("TESSDATA_PREFIX")
+  if configured_prefix:
+    prefix = Path(configured_prefix)
+    if (
+      (prefix / "eng.traineddata").is_file()
+      or (prefix / "tessdata" / "eng.traineddata").is_file()
+    ):
+      return
+
+  executable = shutil.which(pytesseract.pytesseract.tesseract_cmd)
+  if not executable:
+    return
+
+  binary_root = Path(executable).resolve().parent.parent
+  candidates = (
+    binary_root / "share" / "tessdata",
+    binary_root / "share",
+  )
+  for candidate in candidates:
+    if (candidate / "eng.traineddata").is_file():
+      os.environ["TESSDATA_PREFIX"] = str(candidate)
+      return
+
+
+configure_tesseract_data()
+
+
+def ocr_available() -> bool:
+  command = pytesseract.pytesseract.tesseract_cmd
+  executable_path = (
+    Path(command)
+    if Path(command).is_file()
+    else Path(shutil.which(command) or "")
+  )
+  if not executable_path.is_file():
+    return False
+
+  prefix = Path(os.environ.get("TESSDATA_PREFIX", ""))
+  data_directories = (
+    prefix,
+    prefix / "tessdata",
+    executable_path.parent / "tessdata",
+    executable_path.parent.parent / "share" / "tessdata",
+  )
+  return any(
+    (directory / "eng.traineddata").is_file()
+    for directory in data_directories
+  )
+
+
+def poppler_available() -> bool:
+  return bool(shutil.which("pdfinfo") and shutil.which("pdftoppm"))
+
+
+FIELD_LABELS = {
+  "insuredName": "Insured name",
+  "plan": "Plan",
+  "faceAmount": "Face amount",
+  "apl": "Automatic Premium Loan",
+  "loanRate": "Loan rate",
+  "dividend": "Dividend option",
+  "waiver": "Waiver of Premium",
+  "gir": "GIR",
+  "rtr": "RTR",
+  "lisr": "LISR",
+  "lisrTfa": "LISR Target Face Amount",
+  "lisrModal": "LISR Modal Payment",
+  "lisrLumpSum": "LISR Unscheduled Lump Sum",
+  "alirModal": "ALIR Modal Payment",
+  "alirDuration": "ALIR Payment Duration",
+  "alirUnscheduled": "ALIR Unscheduled",
+  "frequency": "Payment frequency",
+  "signedDate": "Signature date",
+  "signatureEvidence": "Signature evidence",
+  "applicationCityState": "Application signed in",
+}
+
+COMPARE_FIELDS = [
+  "insuredName",
+  "plan",
+  "faceAmount",
+  "apl",
+  "loanRate",
+  "dividend",
+  "waiver",
+  "gir",
+  "rtr",
+  "lisr",
+  "lisrTfa",
+  "lisrModal",
+  "lisrLumpSum",
+  "frequency",
+]
+
+TERM_EXCLUDED = {
+  "apl",
+  "loanRate",
+  "dividend",
+  "gir",
+  "rtr",
+  "lisr",
+  "lisrTfa",
+  "lisrModal",
+  "lisrLumpSum",
+  "alirModal",
+  "alirDuration",
+  "alirUnscheduled",
+}
+
+@dataclass
+class PageText:
+  page_number: int
+  text: str
+  source: str
+  rotation: int = 0
+  native_characters: int = 0
+  warnings: list[str] = dataclass_field(default_factory=list)
+
+@dataclass
+class FieldValue:
+  value: str = ""
+  confidence: int = 0
+  page_number: Optional[int] = None
+  source: str = ""
+  matched_label: str = ""
+  excluded: bool = False
+  warnings: list[str] = dataclass_field(default_factory=list)
+
+@dataclass
+class DocumentResult:
+  path: str
+  expected_type: str
+  detected_type: str = "unknown"
+  fields: dict[str, FieldValue] = dataclass_field(default_factory=dict)
+  pages: list[PageText] = dataclass_field(default_factory=list)
+  warnings: list[str] = dataclass_field(default_factory=list)
+  errors: list[str] = dataclass_field(default_factory=list)
+
+@dataclass
+class ComparisonRow:
+  field: str
+  label: str
+  application: str
+  illustration: str
+  status: str
+  note: str
+
+def clean(value: Any) -> str:
+  return re.sub(r"\s+", " ", str(value or "").replace("\u00a0", " ")).strip()
+
+def normalized(value: Any) -> str:
+  text = clean(value).lower()
+  text = re.sub(r"[,$%]", "", text)
+  text = re.sub(r"[‐‑‒–—]", "-", text)
+  text = re.sub(r"\bwl\s*(\d+)\b", r"whole life \1", text)
+  text = re.sub(r"\bwholelife\s*(\d+)\b", r"whole life \1", text)
+  text = re.sub(r"\bwhole life\s+(\d+)\s+pay\b", r"whole life \1", text)
+  text = re.sub(r"paid[ -]?up additions?|\bpua\b", "paid-up additions", text)
+  text = re.sub(r"supplemental insurance dividend(?:/flex)?", "lisr/flex", text)
+  text = re.sub(r"semi annual", "semi-annual", text)
+
+  if text in {"", "not found", "none", "n/a", "not applicable", "missing"}:
+    return "none"
+
+  return clean(text)
+
+def make_field(
+  value: Any = "",
+  confidence: int = 0,
+  page_number: Optional[int] = None,
+  source: str = "",
+  matched_label: str = "",
+  excluded: bool = False,
+  warnings: Optional[list[str]] = None,
+) -> FieldValue:
+  return FieldValue(
+    value=clean(value),
+    confidence=max(0, min(100, int(confidence))),
+    page_number=page_number,
+    source=source,
+    matched_label=matched_label,
+    excluded=excluded,
+    warnings=list(warnings or []),
+  )
+
+def normalize_money(value: Any) -> str:
+  match = re.search(r"\$?\s*([\d,]+(?:\.\d{1,2})?)", str(value or ""))
+  if not match:
+    return ""
+  raw = match.group(1).replace(",", "")
+  try:
+    number = float(raw)
+  except ValueError:
+    return ""
+  return f"${number:,.2f}" if "." in match.group(1) else f"${number:,.0f}"
+
+def money_values_match(left: Any, right: Any) -> bool:
+  """Compare monetary values numerically, ignoring commas and trailing cents."""
+
+  def amount(value: Any) -> Optional[float]:
+    match = re.search(r"[-+]?\$?\s*([\d,]+(?:\.\d{1,2})?)", str(value
+                                  or ""))
+    if not match:
+      return None
+    try:
+      return float(match.group(1).replace(",", ""))
+    except ValueError:
+      return None
+
+  left_amount = amount(left)
+  right_amount = amount(right)
+  return (left_amount is not None and right_amount is not None
+      and abs(left_amount - right_amount) < 0.005)
+
+def normalize_name(value: Any) -> str:
+  text = clean(value)
+  text = re.sub(r"\b\d{5,}\b", "", text)
+  text = re.sub(r",\s*(?:Male|Female).*", "", text, flags=re.I)
+  text = re.sub(r",\s*Age\s+\d+.*", "", text, flags=re.I)
+  return clean(text)
+
+def normalize_plan(value: Any) -> str:
+  text = clean(value)
+
+  match = re.search(r"\bWL\s*(\d+)\b", text, re.I)
+  if match:
+    return f"Whole Life {match.group(1)}"
+
+  match = re.search(
+    r"\bWhole\s*Life\s*(?:Legacy\s*)?(\d+)(?:\s*Pay)?\b",
+    text,
+    re.I,
+  )
+  if match:
+    return f"Whole Life {match.group(1)}"
+
+  match = re.search(
+    r"\bVantage\s*Term(?:\s*ART|\s+\d+)(?:\s*(?:yr|year))?\b",
+    text,
+    re.I,
+  )
+  if match:
+    product = re.sub(
+      r"Vantage\s*Term",
+      "Vantage Term",
+      match.group(0),
+      flags=re.I,
+    )
+    return re.sub(r"Term\s*ART", "Term ART", product, flags=re.I)
+  return text
+
+def normalize_frequency(value: Any) -> str:
+  match = re.search(
+    r"\b(Monthly|Quarterly|Semi[- ]annual|Annual|Single Premium)\b",
+    clean(value),
+    re.I,
+  )
+  if not match:
+    return ""
+  text = match.group(1).lower().replace("semi annual", "semi-annual")
+  return " ".join(part.capitalize() for part in text.split())
+
+def normalize_choice(value: Any) -> str:
+  value = clean(value)
+  if re.fullmatch(r"Y|Yes", value, re.I):
+    return "Yes"
+  if re.fullmatch(r"N|No", value, re.I):
+    return "No"
+  return ""
+
+def parse_yes_no(value: Any) -> str:
+  text = clean(value)
+  selected = selected_checkbox_option(text, ["Yes", "No"])
+  if selected:
+    return selected
+  if re.search(r"\[(?:APL|WP|GIR|RTR|LISR)\]\s*Y\b", text, re.I):
+    return "Yes"
+  if re.search(r"\[(?:APL|WP|GIR|RTR|LISR)\]\s*N\b", text, re.I):
+    return "No"
+  return normalize_choice(text)
+
+def normalize_dividend(value: Any, design: str = "") -> str:
+  if re.search(r"base\s*\+\s*lisr", clean(design), re.I):
+    return "LISR/Flex"
+  text = re.sub(r"^\d+\s+to\s+\d+\s*[-:]\s*", "", clean(value), flags=re.I)
+  if re.search(r"lisr\s*/?\s*flex|supplemental insurance dividend", text,
+        re.I):
+    return "LISR/Flex"
+  if re.search(r"paid[- ]?up additions?|\bpua\b", text, re.I):
+    return "Paid-Up Additions"
+  if re.search(r"dividend accumulations?", text, re.I):
+    return "Dividend Accumulations"
+  if re.search(r"reduce premium", text, re.I):
+    return "Reduce Premium"
+  if re.search(r"\bcash\b", text, re.I):
+    return "Cash"
+  return text
+
+def selected_checkbox_option(text: Any, options: Iterable[str]) -> str:
+  """Return the option selected by an OCR checkbox marker."""
+  value = re.sub(
+    r"\bsemi\s+annual\b",
+    "semi-annual",
+    clean(text),
+    flags=re.I,
+  )
+  marker = (r"(?:\[\s*(?:[xX✓✔¥]|[1-9])\s*\]|\(\s*[xX✓✔¥]\s*\)|"
+        r"[xX✓✔¥]\s*\]|\[\s*[xX✓✔¥]|(?:^|\s)[xX✓✔¥Oo0]\s*|"
+        r"\bLX!|\bEX]|\bOXI|\bDX!|\b(?:MW\]|WI\]|WJ))")
+  for option in options:
+    if re.search(marker + r"\s*" + re.escape(option), value, re.I):
+      return option
+  return ""
+
+def normalize_person_name_parts(value: Any) -> list[str]:
+  text = normalize_name(value).lower()
+  text = re.sub(r"[^a-z' -]", " ", text)
+  return [part for part in text.split() if part]
+
+def person_names_match(left: Any, right: Any) -> bool:
+  """Match first and last names while allowing an optional middle name/initial."""
+  left_parts = normalize_person_name_parts(left)
+  right_parts = normalize_person_name_parts(right)
+  if len(left_parts) < 2 or len(right_parts) < 2:
+    return normalized(left) == normalized(right)
+  return left_parts[0] == right_parts[0] and left_parts[-1] == right_parts[-1]
+
+def extract_application_city_state(pages: list[PageText]) -> FieldValue:
+  return first_match(
+    pages,
+    [
+      r"City/State where application is being signed"
+      r"(?:\s*\([^\n]*\))?\s*[:;,-]?\s*([^\n]{2,80})",
+    ],
+    lambda value: clean(value).rstrip(" .;,-"),
+    "Proposed Insured signature section",
+    96,
+  )
+
+def apply_blank_whole_life_rules(result: dict[str, FieldValue]) -> None:
+  """Apply display defaults to blank optional Whole Life fields."""
+  if not result["waiver"].value:
+    result["waiver"] = make_field(
+      "None", 92, 4, "Blank optional rider section", "C7"
+    )
+
+  for key, label in (("gir", "C10"), ("rtr", "C11")):
+    if not result[key].value:
+      result[key] = make_field(
+        "None", 92, 4, "Blank optional rider section", label
+      )
+
+  if normalized(result["lisr"].value) != "yes":
+    result["lisr"] = make_field("None", 94, 4, "Blank C13 LISR section")
+    for key in ("lisrTfa", "lisrModal", "lisrLumpSum"):
+      result[key] = make_field(
+        "None", 100, 4, "No LISR selected", excluded=True
+      )
+
+  for key in ("alirModal", "alirDuration", "alirUnscheduled"):
+    if not result[key].value:
+      result[key] = make_field(
+        "None", 100, 4, "Blank C12 ALIR section", excluded=True
+      )
+
+def parse_date(value: Any) -> Optional[dt.date]:
+  text = clean(value).replace("O", "0").replace("l", "1")
+  match = re.search(r"(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})", text)
+  if not match:
+    return None
+  month, day, year = map(int, match.groups())
+  if year < 100:
+    year += 2000 if year < 50 else 1900
+  try:
+    return dt.date(year, month, day)
+  except ValueError:
+    return None
+
+def first_match(
+  pages: Iterable[PageText],
+  patterns: Iterable[str],
+  parser: Callable[[str], str] = clean,
+  source: str = "regex",
+  confidence: int = 85,
+) -> FieldValue:
+  for page in pages:
+    for pattern in patterns:
+      match = re.search(pattern, page.text, re.I | re.M | re.S)
+      if not match:
+        continue
+      raw = match.group(1) if match.lastindex else match.group(0)
+      parsed = parser(raw)
+      if parsed:
+        return make_field(parsed, confidence, page.page_number, source,
+                  pattern)
+  return make_field()
+
+def validate_pdf(path: Path) -> None:
+  if not path.exists():
+    raise FileNotFoundError(f"File not found: {path}")
+  if path.suffix.lower() != ".pdf":
+    raise ValueError(f"Expected a PDF file: {path.name}")
+  if path.stat().st_size < 100:
+    raise ValueError(f"PDF is empty or too small: {path.name}")
+  with path.open("rb") as handle:
+    if handle.read(5) != b"%PDF-":
+      raise ValueError(f"File does not have a PDF header: {path.name}")
+
+def count_pdf_pages(pdf_path: str) -> int:
+  path = Path(pdf_path)
+  validate_pdf(path)
+  with pdfplumber.open(path) as pdf:
+    return len(pdf.pages)
+
+def quality_score(text: str) -> float:
+  if not text:
+    return 0.0
+  if len(re.findall(r"\(cid:\d+\)", text)) > 10:
+    return 0.0
+  words = re.findall(r"[A-Za-z]{3,}", text)
+  replacement_penalty = text.count("�") / max(1, len(text))
+  return max(0.0, min(len(words) / 70, 1.0) - replacement_penalty * 10)
+
+def prepare_ocr_image(image: Image.Image) -> tuple[Image.Image, int]:
+  image = ImageOps.exif_transpose(image).convert("RGB")
+  rotation = 0
+  try:
+    osd = pytesseract.image_to_osd(image,
+                    output_type=pytesseract.Output.DICT)
+    rotation = int(osd.get("rotate", 0) or 0)
+    if rotation:
+      image = image.rotate(rotation, expand=True)
+  except Exception as exc:
+    LOGGER.debug("Orientation detection skipped: %s", exc)
+  gray = ImageOps.grayscale(image)
+  gray = ImageEnhance.Contrast(gray).enhance(1.6)
+  return gray.filter(ImageFilter.SHARPEN), rotation
+
+def ocr_page(
+    path: Path,
+    page_number: int,
+    *,
+    include_term_waiver_checkbox: bool = False,
+) -> tuple[str, int]:
+  images = convert_from_path(
+    str(path),
+    dpi=250,
+    first_page=page_number,
+    last_page=page_number,
+    thread_count=1,
+  )
+  if not images:
+    return "", 0
+  image, rotation = prepare_ocr_image(images[0])
+  text = pytesseract.image_to_string(
+    image,
+    config="--oem 3 --psm 6",
+  )
+
+  if (
+    include_term_waiver_checkbox
+    and page_number == 4
+    and rotation == 0
+  ):
+    source_image = images[0]
+    width, height = source_image.size
+    checkbox_region = source_image.crop(
+      (
+        round(width * 0.706),
+        round(height * 0.700),
+        round(width * 0.929),
+        round(height * 0.741),
+      )
+    )
+    checkbox_region = ImageOps.grayscale(checkbox_region).resize(
+      (checkbox_region.width * 2, checkbox_region.height * 2)
+    )
+    checkbox_text = pytesseract.image_to_string(
+      checkbox_region,
+      config="--oem 3 --psm 6",
+    )
+    if clean(checkbox_text):
+      text += (
+        "\n18. Waiver of Premium (for Disability) Rider: "
+        f"{checkbox_text}"
+      )
+
+  return text, rotation
+
+def extract_pages(
+  pdf_path: str,
+  max_pages: int = 25,
+  *,
+  page_numbers: Optional[Iterable[int]] = None,
+  application_checkbox_ocr: bool = False,
+  progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> list[PageText]:
+  path = Path(pdf_path)
+  validate_pdf(path)
+  pages: list[PageText] = []
+  selected_page_numbers = (
+    set(page_numbers) if page_numbers is not None else None
+  )
+
+  with pdfplumber.open(path) as pdf:
+    selected_pages = [
+      (page_number, page)
+      for page_number, page in enumerate(pdf.pages, start=1)
+      if page_number <= max_pages
+      and (
+        selected_page_numbers is None
+        or page_number in selected_page_numbers
+      )
+    ]
+    total_pages = len(selected_pages)
+
+    for completed_pages, (page_number, page) in enumerate(
+      selected_pages,
+      start=1,
+    ):
+      warnings: list[str] = []
+
+      try:
+        native = page.extract_text(layout=True) or ""
+      except Exception as exc:
+        native = ""
+        warnings.append(f"Native extraction failed: {exc}")
+
+      text = native
+      source = "native"
+      rotation = 0
+
+      needs_ocr = (len(clean(native)) < 120
+            or quality_score(native) < 0.35 or "(cid:" in native)
+
+      if needs_ocr:
+        try:
+          ocr_text, rotation = ocr_page(
+            path,
+            page_number,
+            include_term_waiver_checkbox=application_checkbox_ocr,
+          )
+          if clean(ocr_text) and quality_score(ocr_text) > quality_score(native):
+            text = ocr_text
+            source = "ocr"
+          elif not clean(ocr_text):
+            warnings.append("OCR returned no readable text.")
+        except Exception as exc:
+          warnings.append(f"OCR failed: {exc}")
+
+      pages.append(
+        PageText(
+          page_number,
+          text,
+          source,
+          rotation,
+          len(native),
+          warnings,
+        ))
+
+      # Report factual progress after this page is fully processed.
+      if progress_callback is not None:
+        progress_callback(completed_pages, total_pages)
+
+  if not any(clean(page.text) for page in pages):
+    raise RuntimeError("No readable text could be extracted from the PDF")
+
+  return pages
+
+def detect_document_type(pages: list[PageText]) -> str:
+  text = "\n".join(page.text for page in pages[:6])
+  if re.search(
+      r"Application for Individual Life|Part 1|Life Product Information",
+      text, re.I):
+    return "app"
+  if re.search(
+      r"Life Insurance Illustration|Client Input Summary|Narrative Summary",
+      text, re.I):
+    return "ill"
+  return "unknown"
+
+def page_lines(page: PageText) -> list[str]:
+  return [clean(line) for line in page.text.splitlines() if clean(line)]
+
+def line_value(pages: list[PageText], labels: Iterable[str],
+        source: str) -> FieldValue:
+  for page in pages:
+    lines = page_lines(page)
+    for index, line in enumerate(lines):
+      for label in labels:
+        position = line.lower().find(label.lower())
+        if position < 0:
+          continue
+        same_line = clean(line[position + len(label):]).lstrip(":-| ")
+        if same_line:
+          return make_field(same_line, 95, page.page_number, source,
+                    label)
+        for nearby in lines[index + 1:index + 4]:
+          if nearby:
+            return make_field(nearby, 88, page.page_number, source,
+                      label)
+  return make_field()
+
+def parse_application_name(pages: list[PageText]) -> FieldValue:
+  page_one = next((page for page in pages if page.page_number == 1), None)
+  if page_one:
+    same_line = re.search(
+      r"(?:1|4)\s*\.\s*Full legal name[^\n]*?[,:;]\s*"
+      r"([A-Za-z][A-Za-z.'-]*(?:\s*[A-Z]\.?)?\s+[A-Za-z][A-Za-z.'-]*)",
+      page_one.text,
+      re.I,
+    )
+    if same_line:
+      name = clean(same_line.group(1))
+      name = re.sub(r"^([A-Za-z]{3,})([A-Z])\s+", r"\1 \2 ", name)
+      return make_field(name, 98, 1, "A1 OCR line", "Full legal name")
+
+    label = re.search(
+      r"(?:1|4)\s*[\.,]\s*Full\s+legal\s+name",
+      page_one.text,
+      re.I,
+    )
+    if label:
+      preceding_lines = page_one.text[:label.start()].splitlines()
+      for line in reversed(preceding_lines):
+        candidate = clean(line)
+        if not candidate or len(candidate) > 80:
+          continue
+        candidate = re.sub(r"[^A-Za-z.' -]", " ", candidate)
+        candidate = clean(candidate)
+        parts = candidate.split()
+        if (
+          2 <= len(parts) <= 4
+          and all(re.fullmatch(r"[A-Za-z][A-Za-z.'-]*", part) for part in parts)
+          and not re.search(
+            r"\b(complete|section|proposed|insured|personal|information)\b",
+            candidate,
+            re.I,
+          )
+        ):
+          return make_field(
+            candidate,
+            84,
+            1,
+            "name immediately preceding Full legal name",
+            "Full legal name",
+          )
+
+  for page in reversed(pages):
+    match = re.search(
+      r"Signature of Proposed Insured[\s\S]{0,500}?"
+      r"Printed\s*name\s*[:;,-]?\s*([A-Za-z][A-Za-z.'-]*(?:\s+[A-Za-z][A-Za-z.'-]*){1,4})",
+      page.text,
+      re.I,
+    )
+    if match:
+      return make_field(clean(match.group(1)), 94, page.page_number,
+                "signature fallback", "Printed name")
+  return make_field(warnings=["Insured name not found"])
+
+
+def selected_labeled_option(
+    pages: list[PageText],
+    label_pattern: str,
+    options: Iterable[str],
+    source: str,
+    confidence: int = 88,
+) -> FieldValue:
+  for page in pages:
+    for match in re.finditer(label_pattern, page.text, re.I):
+      context_start = max(0, match.start() - 40)
+      context_end = min(len(page.text), match.end() + 300)
+      selected = selected_checkbox_option(
+        page.text[context_start:context_end],
+        options,
+      )
+      if selected:
+        return make_field(
+          selected,
+          confidence,
+          page.page_number,
+          source,
+          match.group(0),
+        )
+  return make_field()
+
+
+def extract_application_face_amount(pages: list[PageText]) -> FieldValue:
+  amount_pattern = re.compile(
+    r"(?<!\d)(?:\d{1,3}(?:,\d{3})+|\d{4,})(?:\.\d{1,2})?(?!\d)"
+  )
+  labels = (
+    (
+      re.compile(
+        r"(?:1\s*[\.,]\s*)?Maximum face amount being applied for "
+        r"on this Application",
+        re.I,
+      ),
+      "Maximum face amount",
+      96,
+    ),
+    (
+      re.compile(r"(?:3|15|45)\s*[\.,;]\s*Face\s*amount", re.I),
+      "Face amount",
+      88,
+    ),
+  )
+
+  for page in pages:
+    lines = page_lines(page)
+    for index, line in enumerate(lines):
+      for label_pattern, source, confidence in labels:
+        label = label_pattern.search(line)
+        if not label:
+          continue
+
+        same_line = (
+          amount_pattern.findall(line[:label.start()])
+          + amount_pattern.findall(line[label.end():])
+        )
+        if same_line:
+          value = same_line[-1]
+          return make_field(
+            normalize_money(value),
+            confidence,
+            page.page_number,
+            source,
+            label.group(0),
+          )
+
+        nearby_lines = (
+          list(reversed(lines[max(0, index - 3):index]))
+          + lines[index + 1:index + 4]
+        )
+        for nearby in nearby_lines:
+          amount = amount_pattern.fullmatch(nearby.strip(" $"))
+          if amount:
+            return make_field(
+              normalize_money(amount.group(0)),
+              confidence,
+              page.page_number,
+              source,
+              label.group(0),
+            )
+
+  return make_field()
+
+
+def extract_signature_date(pages: list[PageText]) -> FieldValue:
+  return first_match(
+    pages,
+    [
+      r"Signature of Proposed Insured[\s\S]{0,500}?"
+      r"Printed\s*name\s*[:;,-]?[\s\S]{0,180}?"
+      r"Date\s*[:;,-]?\s*(\d{1,2}/\d{1,2}/\d{2,4})",
+    ],
+    clean,
+    "Proposed Insured signature date",
+    96,
+  )
+
+def signature_evidence(pages: list[PageText],
+            signed_date: FieldValue) -> FieldValue:
+  text = "\n".join(page.text for page in pages)
+  if re.search(
+      r"DocuSign Envelope ID|Adobe Sign|electronically signed|digital signature",
+      text, re.I):
+    return make_field("Signed", 96, source="electronic signature evidence")
+  if signed_date.value and parse_date(signed_date.value):
+    return make_field("Signed", 94, signed_date.page_number,
+              "completed signature date")
+  return make_field(
+    "Unsigned",
+    95,
+    source="no electronic signature or completed signature date")
+
+def parse_application(
+    pages: list[PageText],
+) -> dict[str, FieldValue]:
+
+    result = {key: make_field() for key in FIELD_LABELS}
+
+    # Sections A, C, G, and N contain the Part 1 fields and signatures used here.
+    pages = [
+        page
+        for page in pages
+        if page.page_number in APPLICATION_REVIEW_PAGES
+    ]
+
+    result["insuredName"] = parse_application_name(pages)
+
+    term = first_match(
+        pages,
+        [
+            (
+              r"(?:14|16|44|46)\s*[\.,]\s*Plan\s*[:;,-]?\s*"
+              r"(Vantage\s*Term(?:\s*ART|\s+\d+)(?:\s*(?:yr|year))?)"
+            ),
+            r"\b(Vantage\s*Term(?:\s*ART|\s+\d+)(?:\s*(?:yr|year))?)\b",
+        ],
+        normalize_plan,
+        "Vantage Term product section",
+        98,
+    )
+
+    whole = first_match(
+        pages,
+        [
+            r"2\s*[\.,]\s*Plan\s*[:;,-]?\s*((?:Survivorship\s+)?Whole\s*Life\s*(?:Legacy\s*)?\d+|WholeLife\d+|WL\s*\d+)"
+        ],
+        normalize_plan,
+        "Whole Life product section",
+        96,
+    )
+
+    is_term = bool(term.value)
+
+    result["plan"] = term if is_term else whole
+    result["faceAmount"] = extract_application_face_amount(pages)
+
+    if is_term:
+        result["waiver"] = selected_labeled_option(
+            pages,
+            r"(?:16|18|46)\s*[\.,]\s*Waiver of Premium",
+            ("Yes", "No"),
+            "Vantage Term waiver selection",
+        )
+
+        for key in TERM_EXCLUDED:
+            result[key] = make_field(
+                "N/A",
+                100,
+                source="Vantage Term rule",
+                excluded=True,
+            )
+
+    else:
+        result["apl"] = selected_labeled_option(
+          pages,
+          r"(?:4|24)\s*[\.,]\s*Automatic Premium Loan",
+          ("Yes", "No"),
+          "Automatic Premium Loan selection",
+        )
+        result["loanRate"] = selected_labeled_option(
+          pages,
+          r"(?:5|25)\s*[\.,]\s*Loan rate",
+          ("Adjustable", "Fixed"),
+          "Loan rate selection",
+        )
+        result["dividend"] = selected_labeled_option(
+          pages,
+          r"(?:6|26)\s*[\.,]\s*Dividend Option",
+          (
+            "Paid-up Additions",
+            "Cash",
+            "Supplemental Insurance Dividend/Flex",
+            "Dividend Accumulations",
+          ),
+          "Dividend option selection",
+        )
+        result["waiver"] = selected_labeled_option(
+          pages,
+          r"(?:7|17)\s*[\.,]\s*Waiver of Premium",
+          ("Yes", "No"),
+          "Waiver of Premium selection",
+        )
+        result["frequency"] = selected_labeled_option(
+          pages,
+          r"(?:2|22)\s*[\.,]\s*Frequency",
+          ("Monthly", "Quarterly", "Semi-annual", "Annual", "Single Premium"),
+          "Payment frequency selection",
+        )
+
+    if not result["frequency"].value:
+      result["frequency"] = selected_labeled_option(
+        pages,
+        r"Frequency",
+        ("Monthly", "Quarterly", "Semi-annual", "Annual", "Single Premium"),
+        "Payment frequency selection",
+      )
+    if result["frequency"].value:
+      result["frequency"].value = normalize_frequency(
+        result["frequency"].value
+      )
+
+    signature_pages = [
+        page
+        for page in pages
+        if page.page_number == 13
+    ]
+
+    result["signedDate"] = extract_signature_date(signature_pages)
+    result["signatureEvidence"] = signature_evidence(
+        signature_pages,
+        result["signedDate"],
+    )
+
+    result["applicationCityState"] = extract_application_city_state(
+        signature_pages
+    )
+
+    return result
+
+def extract_illustration_plan(pages: list[PageText], ) -> FieldValue:
+  """
+  Extract the actual product name instead of accidentally
+  capturing descriptive narrative such as:
+  'Premiums are payable to Age 100.'
+  """
+
+  plan = first_match(
+    pages,
+    [
+      # Cover or page heading
+      r"^\s*(Whole\s+Life\s+\d+)\s*$",
+
+      # Policy Information section
+      r"Policy\s+"
+      r"(Whole\s+Life\s+\d+)"
+      r"(?:\s+with\s+Premiums\s+Payable"
+      r"\s+to\s+Age\s+\d+)?",
+
+      # Common Whole Life sentence
+      r"What\s+is\s+"
+      r"(Whole\s+Life\s+\d+)",
+
+      # Term products
+      r"\b(Vantage\s+Term"
+      r"(?:\s+ART|\s+\d+)?)\b",
+    ],
+    normalize_plan,
+    "Illustration product heading",
+    98,
+  )
+
+  if plan.value:
+    return plan
+
+  return make_field(warnings=["Illustration plan name was not found."])
+
+def extract_illustration_loan_rate(pages: list[PageText], ) -> FieldValue:
+  """
+  Classify policy loan rates from illustration disclosures.
+  """
+
+  text = "\n".join(page.text for page in pages)
+
+  adjustable_patterns = [
+    (r"adjustable\s+policy\s+loan"
+    r"\s+interest\s+rate"),
+    (r"rate\s+may\s+change\s+on"
+    r"\s+each\s+policy"
+    r"\s+anniversary\s+date"),
+    (r"interest\s+rate"
+    r"[\s\S]{0,180}?"
+    r"may\s+change"),
+  ]
+
+  for pattern in adjustable_patterns:
+    match = re.search(
+      pattern,
+      text,
+      re.I,
+    )
+
+    if match:
+      page_number = None
+
+      for page in pages:
+        if re.search(
+            pattern,
+            page.text,
+            re.I,
+        ):
+          page_number = (page.page_number)
+          break
+
+      return make_field(
+        "Adjustable",
+        98,
+        page_number,
+        ("Policy loan disclosure: "
+        "rate may change"),
+        pattern,
+      )
+
+  fixed_patterns = [
+    r"\bfixed\s+policy\s+loan"
+    r"\s+interest\s+rate\b",
+    r"\bfixed\s+loan\s+rate\b",
+  ]
+
+  for pattern in fixed_patterns:
+    if re.search(
+        pattern,
+        text,
+        re.I,
+    ):
+      return make_field(
+        "Fixed",
+        96,
+        source=("Fixed policy loan "
+            "disclosure"),
+        matched_label=pattern,
+      )
+
+  return make_field(warnings=["Policy loan-rate type was not found."])
+
+def extract_illustration_signature_date(pages: list[PageText], ) -> FieldValue:
+  """
+  Extract the handwritten or OCR-readable date from
+  the Numeric Summary and Signature Page.
+  """
+
+  signature_pages = [
+    page for page in pages if re.search(
+      (r"Numeric\s+Summary"
+      r"\s+and\s+Signature\s+Page"
+      r"|Owner\s+Date"),
+      page.text,
+      re.I,
+    )
+  ]
+
+  if not signature_pages:
+    signature_pages = pages
+
+  date_patterns = [
+    # Owner followed by a nearby date
+    (r"Owner"
+    r"[\s\S]{0,300}?"
+    r"Date\s*[:;,-]?\s*"
+    r"(\d{1,2}\s*[/-]\s*"
+    r"\d{1,2}\s*[/-]\s*"
+    r"\d{2,4})"),
+
+    # OCR may place the date before "Date"
+    (r"Owner"
+    r"[\s\S]{0,300}?"
+    r"(\d{1,2}\s*[/-]\s*"
+    r"\d{1,2}\s*[/-]\s*"
+    r"\d{2,4})"
+    r"[\s\S]{0,60}?"
+    r"Date"),
+
+    # Date near signature certification wording
+    (r"I\s+have\s+received\s+a\s+copy"
+    r"[\s\S]{0,900}?"
+    r"(\d{1,2}\s*[/-]\s*"
+    r"\d{1,2}\s*[/-]\s*"
+    r"\d{2,4})"),
+  ]
+
+  result = first_match(
+    signature_pages,
+    date_patterns,
+    lambda value: re.sub(
+      r"\s+",
+      "",
+      clean(value),
+    ),
+    "Illustration owner signature date",
+    88,
+  )
+
+  if result.value:
+    return result
+
+  return make_field(warnings=[("The illustration signature date "
+                "was not readable by OCR.")])
+
+def illustration_signature_evidence(
+  pages: list[PageText],
+  signed_date: FieldValue,
+) -> FieldValue:
+  """
+  Determine illustration signature status from the
+  signature page and extracted owner date.
+  """
+
+  text = "\n".join(page.text for page in pages)
+
+  electronic_signature = re.search(
+    (r"DocuSign\s+Envelope\s+ID"
+    r"|Adobe\s+Sign"
+    r"|electronically\s+signed"
+    r"|digital\s+signature"),
+    text,
+    re.I,
+  )
+
+  if electronic_signature:
+    return make_field(
+      "Signed",
+      98,
+      source=("Electronic signature evidence"),
+    )
+
+  if (signed_date.value and parse_date(signed_date.value)):
+    return make_field(
+      "Signed",
+      94,
+      signed_date.page_number,
+      ("Completed owner signature "
+      "date"),
+    )
+
+  has_signature_page = bool(
+    re.search(
+      (r"Numeric\s+Summary"
+      r"\s+and\s+Signature\s+Page"),
+      text,
+      re.I,
+    ))
+
+  if has_signature_page:
+    return make_field(
+      "Review",
+      55,
+      source=("Signature page found, but "
+          "signature/date was not readable"),
+      warnings=[("Manually review the owner "
+            "signature and date.")],
+    )
+
+  return make_field(
+    "Unsigned",
+    90,
+    source=("No signature-page evidence found"),
+  )
+
+def parse_illustration_fallback(
+    pages: list[PageText]) -> dict[str, FieldValue]:
+  result = {key: make_field() for key in FIELD_LABELS}
+  text = "\n".join(page.text for page in pages)
+  result["insuredName"] = first_match(pages,
+                    [r"Prepared for\s+([^\n]{2,100})"],
+                    normalize_name, "Prepared for", 92)
+  result["plan"] = extract_illustration_plan(pages)
+  face = line_value(pages, ["Base Policy Face Amount", "Base Face Amount"],
+            "Initial Coverage Information")
+  result["faceAmount"] = make_field(normalize_money(face.value),
+                    95 if face.value else 0,
+                    face.page_number, face.source,
+                    face.matched_label)
+  mode = line_value(pages, ["Premium Payment Mode", "Premium Mode"],
+            "Initial Premium Information")
+  result["frequency"] = make_field(normalize_frequency(mode.value),
+                  94 if mode.value else 0, mode.page_number,
+                  mode.source, mode.matched_label)
+  dividend = line_value(
+    pages, ["Initial Base Dividend Option", "Initial Dividend Option"],
+    "Policy Information")
+  result["dividend"] = make_field(normalize_dividend(dividend.value, text),
+                  94 if dividend.value else 0,
+                  dividend.page_number, dividend.source,
+                  dividend.matched_label)
+  result["apl"] = make_field(
+    "Yes",
+    92,
+    source="Loan Interest Option",
+    matched_label="Borrow from Policy") if re.search(
+      r"Borrow from Policy", text, re.I) else make_field()
+  result["loanRate"] = (extract_illustration_loan_rate(pages))
+  result["lisrModal"] = first_match(
+    pages, [r"LISR Premium First Year[^\d$]*\$?\s*([\d,]+(?:\.\d{2})?)"],
+    normalize_money, "LISR Premium First Year", 94)
+  result["lisrTfa"] = first_match(pages, [
+    r"LISR Target Face Amount(?:\s*\(TFA\))?[^\d$]*\$?\s*([\d,]+(?:\.\d{2})?)"
+  ], normalize_money, "LISR TFA", 94)
+  has_lisr = bool(
+    re.search(
+      r"Base\s*\+\s*LISR|LISR/Flex|LISR Premium First Year|LISR Target Face Amount",
+      text, re.I))
+  result["lisr"] = make_field("Yes" if has_lisr else "None",
+                92,
+                source="LISR indicators")
+  alir = re.search(
+    r"initial payment of\s*\$?\s*([\d,]+(?:\.\d{2})?)\s*(?:monthly|quarterly|semi[- ]annual|annual)?\s*for\s*(\d+)\s*years?\s*under the ALIR",
+    text, re.I)
+  if alir:
+    result["alirModal"] = make_field(
+      normalize_money(alir.group(1)),
+      94,
+      source="Additional Information About This Illustration")
+    result["alirDuration"] = make_field(
+      f"{alir.group(2)} years",
+      94,
+      source="Additional Information About This Illustration")
+  result["waiver"] = first_match(
+    pages, [r"Waiver of Premium\s*\[WP\]\s*([YN]|Yes|No)"],
+    normalize_choice, "Rider listing", 90)
+  result["gir"] = first_match(
+    pages, [r"Guaranteed Insurability Rider\s*\[GIR\]\s*([YN]|Yes|No)"],
+    normalize_choice, "Rider listing", 90)
+  result["rtr"] = first_match(
+    pages, [r"Renewable Term Rider\s*\[RTR\]\s*([YN]|Yes|No)"],
+    normalize_choice, "Rider listing", 90)
+  return result
+
+def parse_illustration(pages: list[PageText], ) -> dict[str, FieldValue]:
+  fallback = parse_illustration_fallback(pages)
+
+  summary_pages = [
+    page for page in pages if re.search(
+      r"Client Input Summary",
+      page.text,
+      re.I,
+    )
+  ]
+
+  result = fallback
+
+  if summary_pages:
+    result = {key: make_field() for key in FIELD_LABELS}
+
+    first = line_value(
+      summary_pages,
+      ["First Name"],
+      "Client Input Summary",
+    )
+
+    last = line_value(
+      summary_pages,
+      ["Last Name"],
+      "Client Input Summary",
+    )
+
+    extracted_name = normalize_name(f"{first.value} {last.value}")
+
+    result["insuredName"] = make_field(
+      extracted_name,
+      98 if extracted_name else 0,
+      first.page_number or last.page_number,
+      "Client Input Summary",
+      "First Name + Last Name",
+    )
+
+    product = line_value(
+      summary_pages,
+      ["Product"],
+      "Client Input Summary",
+    )
+
+    summary_plan = normalize_plan(product.value)
+    if re.search(
+        r"\b(?:Whole\s+Life\s+\d+|Vantage\s+Term)\b",
+        summary_plan,
+        re.I,
+    ):
+      result["plan"] = make_field(
+        summary_plan,
+        98,
+        product.page_number,
+        product.source,
+        product.matched_label,
+      )
+    else:
+      result["plan"] = fallback["plan"]
+
+    design = line_value(
+      summary_pages,
+      ["Design"],
+      "Client Input Summary",
+    )
+
+    face = line_value(
+      summary_pages,
+      ["Base Face Amount"],
+      "Client Input Summary",
+    )
+
+    face_amount = normalize_money(face.value)
+
+    result["faceAmount"] = make_field(
+      face_amount,
+      98 if face_amount else 0,
+      face.page_number,
+      face.source,
+      face.matched_label,
+    )
+
+    mode = line_value(
+      summary_pages,
+      ["Premium Mode"],
+      "Client Input Summary",
+    )
+
+    frequency = normalize_frequency(mode.value)
+
+    result["frequency"] = make_field(
+      frequency,
+      98 if frequency else 0,
+      mode.page_number,
+      mode.source,
+      mode.matched_label,
+    )
+
+    dividend = line_value(
+      summary_pages,
+      ["Dividend Option"],
+      "Client Input Summary",
+    )
+
+    dividend_value = normalize_dividend(
+      dividend.value,
+      design.value,
+    )
+
+    result["dividend"] = make_field(
+      dividend_value,
+      98 if dividend_value else 0,
+      dividend.page_number or design.page_number,
+      "Client Input Summary",
+      "Dividend Option/Design",
+    )
+
+    loan_option = line_value(
+      summary_pages,
+      ["Loan Interest Option"],
+      "Client Input Summary",
+    )
+
+    apl_value = ("Yes" if re.search(
+      r"Borrow from Policy",
+      loan_option.value,
+      re.I,
+    ) else "")
+
+    result["apl"] = make_field(
+      apl_value,
+      96 if apl_value else 0,
+      loan_option.page_number,
+      loan_option.source,
+      loan_option.matched_label,
+    )
+
+    loan_rate = line_value(
+      summary_pages,
+      ["Loan Rate"],
+      "Client Input Summary",
+    )
+
+    if re.search(
+        r"Adjustable",
+        loan_rate.value,
+        re.I,
+    ):
+      rate = "Adjustable"
+
+    elif re.search(
+        r"Fixed",
+        loan_rate.value,
+        re.I,
+    ):
+      rate = "Fixed"
+
+    else:
+      rate = ""
+
+    if rate:
+      result["loanRate"] = make_field(
+        rate,
+        98,
+        loan_rate.page_number,
+        loan_rate.source,
+        loan_rate.matched_label,
+      )
+    else:
+      result["loanRate"] = fallback["loanRate"]
+
+    rider_labels = {
+      "waiver": [
+        "Waiver of Premium [WP]",
+        "Waiver of Premium",
+      ],
+      "gir": [
+        "Guaranteed Insurability Rider [GIR]",
+      ],
+      "rtr": [
+        "Renewable Term Rider [RTR]",
+      ],
+    }
+
+    for key, labels in rider_labels.items():
+      found = line_value(
+        summary_pages,
+        labels,
+        "Client Input Summary",
+      )
+
+      rider_value = normalize_choice(found.value)
+
+      result[key] = make_field(
+        rider_value,
+        98 if rider_value else 0,
+        found.page_number,
+        found.source,
+        found.matched_label,
+      )
+
+    tfa = line_value(
+      summary_pages,
+      [
+        "LISR Target Face Amount (TFA)",
+        "LISR Target Face Amount",
+      ],
+      "Client Input Summary",
+    )
+
+    lump = line_value(
+      summary_pages,
+      ["LISR Lump Sum"],
+      "Client Input Summary",
+    )
+
+    tfa_value = normalize_money(tfa.value)
+
+    result["lisrTfa"] = make_field(
+      tfa_value,
+      98 if tfa_value else 0,
+      tfa.page_number,
+      tfa.source,
+      tfa.matched_label,
+    )
+
+    lump_value = (normalize_money(lump.value)
+            or ("$0" if clean(lump.value) == "0" else ""))
+
+    result["lisrLumpSum"] = make_field(
+      lump_value,
+      98 if lump_value else 0,
+      lump.page_number,
+      lump.source,
+      lump.matched_label,
+    )
+
+    result["lisrModal"] = fallback["lisrModal"]
+
+    has_lisr = bool(
+      re.search(
+        r"Base\s*\+\s*LISR",
+        design.value,
+        re.I,
+      ) or result["lisrTfa"].value or re.search(
+        r"LISR/Flex",
+        result["dividend"].value,
+        re.I,
+      ))
+
+    result["lisr"] = make_field(
+      "Yes" if has_lisr else "None",
+      98,
+      design.page_number,
+      "Client Input Summary",
+      "Design",
+    )
+
+    result["alirModal"] = fallback["alirModal"]
+
+    result["alirDuration"] = fallback["alirDuration"]
+
+    result["alirUnscheduled"] = fallback["alirUnscheduled"]
+    for key in result:
+      fallback_field = fallback.get(key)
+
+      if (not result[key].value and fallback_field
+          and fallback_field.value):
+        result[key] = fallback_field
+  result["signedDate"] = (extract_illustration_signature_date(pages))
+
+  result["signatureEvidence"] = (illustration_signature_evidence(
+    pages,
+    result["signedDate"],
+  ))
+
+  if not result["applicationCityState"].value:
+    result["applicationCityState"] = make_field(
+      "None",
+      100,
+      source=("Not applicable to illustration"),
+      excluded=True,
+    )
+
+  return result
+
+def parse_document(
+  pdf_path: str,
+  expected_type: str,
+  max_pages: int = 25,
+  *,
+  progress_callback: Optional[Callable[[int, int], None]] = None,
+) -> DocumentResult:
+  result = DocumentResult(
+    path=pdf_path,
+    expected_type=expected_type,
+  )
+
+  try:
+    page_numbers = (
+      APPLICATION_REVIEW_PAGES
+      if expected_type == "app"
+      else None
+    )
+    result.pages = extract_pages(
+      pdf_path,
+      max_pages=max_pages,
+      page_numbers=page_numbers,
+      application_checkbox_ocr=expected_type == "app",
+      progress_callback=progress_callback,
+    )
+
+    result.detected_type = detect_document_type(result.pages)
+
+    if (result.detected_type != "unknown"
+        and result.detected_type != expected_type):
+      result.errors.append(
+        "Wrong file type: expected "
+        f"{expected_type}, detected {result.detected_type}")
+      return result
+
+    if expected_type == "app":
+      result.fields = parse_application(result.pages)
+    else:
+      result.fields = parse_illustration(result.pages)
+
+    for page in result.pages:
+      for warning in page.warnings:
+        result.warnings.append(f"Page {page.page_number}: {warning}")
+
+  except Exception as exc:
+    result.errors.append(str(exc))
+    LOGGER.exception("Failed to parse %s", pdf_path)
+
+  return result
+
+def values_are_missing(
+  left: str,
+  right: str,
+) -> bool:
+
+  missing_values = {
+    "",
+    "n/a",
+    "not found",
+    "none",
+  }
+
+  return (normalized(left) in missing_values
+      and normalized(right) in missing_values)
+
+def compare_documents(app: DocumentResult,
+            ill: DocumentResult,
+            state: str = "") -> list[ComparisonRow]:
+  if app.errors or ill.errors or not app.fields or not ill.fields:
+    return [
+      ComparisonRow("SYSTEM", "System", "; ".join(app.errors)
+              or "Extraction failed", "; ".join(ill.errors)
+              or "Extraction failed", "Failed",
+              "One or both documents could not be validated.")
+    ]
+  rows: list[ComparisonRow] = []
+  is_term = bool(
+    re.match(r"^Vantage\s+Term\b",
+        app.fields.get("plan", make_field()).value, re.I))
+  for key in COMPARE_FIELDS:
+    app_field = app.fields.get(key, make_field())
+    ill_field = ill.fields.get(key, make_field())
+    if is_term and key in TERM_EXCLUDED:
+      rows.append(
+        ComparisonRow(key, FIELD_LABELS[key], "N/A", "N/A",
+                "Excluded", "Not applicable for Vantage Term."))
+      continue
+    if key.startswith("lisr") and key != "lisr" and normalized(
+        app.fields.get("lisr", make_field()).value) != "yes":
+      rows.append(
+        ComparisonRow(key, FIELD_LABELS[key], "N/A", "N/A",
+                "Excluded", "No LISR on the application."))
+      continue
+    if not app_field.value or not ill_field.value:
+      status, note = "Review", "Could not extract a value from one or both documents."
+
+    elif key == "insuredName" and person_names_match(
+        app_field.value, ill_field.value):
+      status, note = "Match", "First and last names match; middle name or initial is optional."
+    elif key in {"faceAmount", "lisrTfa", "lisrModal",
+          "lisrLumpSum"} and money_values_match(
+            app_field.value, ill_field.value):
+      status, note = "Match", "Monetary values are numerically equal; formatting differences are ignored."
+
+    elif key in {"waiver", "gir", "rtr", "lisr"} and {
+        normalized(app_field.value),
+        normalized(ill_field.value)
+    } <= {"no", "none", "n/a"}:
+      status, note = "Match", "Neither document includes this optional rider."
+    elif normalized(app_field.value) == normalized(ill_field.value):
+      status, note = "Match", "Values match."
+    else:
+      status, note = "Mismatch", "Values differ."
+    rows.append(
+      ComparisonRow(key, FIELD_LABELS[key], app_field.value
+              or "None", ill_field.value or "None",
+              status, note))
+  if state.upper() == "NY":
+    app_date_value = app.fields.get("signedDate", make_field()).value
+    ill_date_value = ill.fields.get("signedDate", make_field()).value
+    app_date, ill_date = parse_date(app_date_value), parse_date(
+      ill_date_value)
+    if not app_date or not ill_date:
+      rows.append(
+        ComparisonRow(
+          "nySignatureTiming", "NY signature timing", app_date_value
+          or "None", ill_date_value or "None", "Review",
+          "Could not parse one or both dates for Reg 74 validation.")
+      )
+    elif ill_date > app_date:
+      rows.append(
+        ComparisonRow(
+          "nySignatureTiming", "NY signature timing", app_date_value,
+          ill_date_value, "Mismatch",
+          "Illustration signature date is after the Part 1 date."))
+    else:
+      rows.append(
+        ComparisonRow(
+          "nySignatureTiming", "NY signature timing", app_date_value,
+          ill_date_value, "Match",
+          "Illustration was signed on or before the Part 1 date."))
+  return rows
+
+def document_to_dict(document: DocumentResult,
+          include_text: bool = True) -> dict[str, Any]:
+  payload = asdict(document)
+  if not include_text:
+    for page in payload["pages"]:
+      page.pop("text", None)
+  return payload
+
+def build_report(app: DocumentResult,
+        ill: DocumentResult,
+        rows: list[ComparisonRow],
+        state: str = "") -> dict[str, Any]:
+  return {
+    "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(),
+    "state": state.upper(),
+    "application": document_to_dict(app),
+    "illustration": document_to_dict(ill),
+    "comparison": [asdict(row) for row in rows],
+    "summary": {
+      "matches": sum(row.status == "Match" for row in rows),
+      "mismatches": sum(row.status == "Mismatch" for row in rows),
+      "reviews": sum(row.status == "Review" for row in rows),
+      "excluded": sum(row.status == "Excluded" for row in rows),
+      "failed": sum(row.status == "Failed" for row in rows),
+    },
+    "runtime": {
+      "tesseract":
+      pytesseract.pytesseract.tesseract_cmd,
+      "tesseractAvailable": ocr_available(),
+      "popplerAvailable": poppler_available(),
+    },
+  }

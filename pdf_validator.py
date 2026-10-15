@@ -494,23 +494,7 @@ def ocr_page(
     and page_number == 4
     and rotation == 0
   ):
-    source_image = images[0]
-    width, height = source_image.size
-    checkbox_region = source_image.crop(
-      (
-        round(width * 0.706),
-        round(height * 0.700),
-        round(width * 0.929),
-        round(height * 0.741),
-      )
-    )
-    checkbox_region = ImageOps.grayscale(checkbox_region).resize(
-      (checkbox_region.width * 2, checkbox_region.height * 2)
-    )
-    checkbox_text = pytesseract.image_to_string(
-      checkbox_region,
-      config="--oem 3 --psm 6",
-    )
+    checkbox_text = ocr_waiver_checkbox_region(images[0])
     if clean(checkbox_text):
       text += (
         "\n18. Waiver of Premium (for Disability) Rider: "
@@ -518,6 +502,39 @@ def ocr_page(
       )
 
   return text, rotation
+
+def ocr_waiver_checkbox_region(source_image: Image.Image) -> str:
+  width, height = source_image.size
+  checkbox_region = source_image.crop(
+    (
+      round(width * 0.706),
+      round(height * 0.700),
+      round(width * 0.929),
+      round(height * 0.741),
+    )
+  )
+  checkbox_region = ImageOps.grayscale(checkbox_region).resize(
+    (checkbox_region.width * 2, checkbox_region.height * 2)
+  )
+  return pytesseract.image_to_string(
+    checkbox_region,
+    config="--oem 3 --psm 6",
+  )
+
+def ocr_application_waiver_checkbox(
+  pdf_path: str,
+  page_number: int,
+) -> str:
+  images = convert_from_path(
+    pdf_path,
+    dpi=250,
+    first_page=page_number,
+    last_page=page_number,
+    thread_count=1,
+  )
+  if not images:
+    return ""
+  return ocr_waiver_checkbox_region(images[0])
 
 def extract_pages(
   pdf_path: str,
@@ -579,6 +596,31 @@ def extract_pages(
             warnings.append("OCR returned no readable text.")
         except Exception as exc:
           warnings.append(f"OCR failed: {exc}")
+
+      if application_checkbox_ocr and page_number == 4:
+        waiver_match = re.search(
+          r"Waiver of Premium[\s\S]{0,300}",
+          text,
+          re.I,
+        )
+        if not waiver_match or not selected_checkbox_option(
+          waiver_match.group(0),
+          ("Yes", "No"),
+        ):
+          try:
+            checkbox_text = ocr_application_waiver_checkbox(
+              str(path),
+              page_number,
+            )
+            if clean(checkbox_text):
+              text += (
+                "\n18. Waiver of Premium (for Disability) Rider: "
+                f"{checkbox_text}"
+              )
+          except Exception as exc:
+            warnings.append(
+              f"Waiver checkbox OCR failed: {exc}"
+            )
 
       pages.append(
         PageText(
@@ -892,7 +934,7 @@ def parse_application(
         )
         result["waiver"] = selected_labeled_option(
           pages,
-          r"(?:7|17)\s*[\.,]\s*Waiver of Premium",
+          r"(?:7|17|18)\s*[\.,]\s*Waiver of Premium",
           ("Yes", "No"),
           "Waiver of Premium selection",
         )

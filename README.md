@@ -46,7 +46,10 @@ solution is in place.
 
 | Location | Purpose |
 | --- | --- |
-| `home.html`, `index.html`, and other root HTML files | Main workspace and review screens |
+| `index.html` | Redirects GitHub Pages visitors to the workspace landing page |
+| `home.html` | Workspace landing page |
+| `initial-review.html` | Full initial-review workflow |
+| Other root HTML files | Workspace tools and reference screens |
 | `mycases/` | Case queue and case-detail screens |
 | `scripts/` | Browser-side workflows and shared application logic |
 | `Styling/` | Shared design system and screen stylesheets |

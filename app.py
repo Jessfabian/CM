@@ -442,7 +442,12 @@ def validate_documents_stream():
 
     def event_stream():
         while True:
-            event = event_queue.get()
+            try:
+                event = event_queue.get(timeout=10)
+            except queue.Empty:
+                yield json.dumps({"type": "heartbeat"}) + "\n"
+                continue
+
             yield json.dumps(event) + "\n"
 
             if event["type"] in {"complete", "error"}:

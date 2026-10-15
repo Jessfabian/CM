@@ -255,6 +255,29 @@
     form.append("illustration", files.ill);
     form.append("state", $("state").value);
 
+    let estimateTimer;
+    let currentEstimateSeconds = null;
+    let estimateStartedAt = 0;
+    let currentProgressMessage = "";
+
+    function updateProgressStatus() {
+      if (currentEstimateSeconds === null) return;
+
+      const elapsedSeconds = Math.floor(
+        (Date.now() - estimateStartedAt) / 1000,
+      );
+      const remainingSeconds = Math.max(
+        0,
+        currentEstimateSeconds - elapsedSeconds,
+      );
+      const estimateMessage = remainingSeconds
+        ? `Estimated time remaining: ${formatDuration(remainingSeconds)}`
+        : "Taking longer than estimated; still processing…";
+
+      $("runStatus").textContent =
+        `${currentProgressMessage} · ${estimateMessage}`;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/api/validate-stream`, {
         method: "POST",
@@ -276,6 +299,11 @@
           throw new Error(event.message || "Validation failed.");
         }
 
+        if (event.type === "heartbeat") {
+          updateProgressStatus();
+          return;
+        }
+
         if (event.type === "complete") {
           report = event.report;
           $("appProgress").style.width = "100%";
@@ -286,9 +314,13 @@
         if (event.type !== "progress") return;
 
         const percent = Number(event.percent) || 0;
-        $("runStatus").textContent =
-          `${event.message} · Estimated time remaining: ` +
-          formatDuration(event.estimatedRemainingSeconds);
+        currentProgressMessage = event.message || "Processing documents";
+        currentEstimateSeconds = Math.max(
+          0,
+          Number(event.estimatedRemainingSeconds) || 0,
+        );
+        estimateStartedAt = Date.now();
+        updateProgressStatus();
         $("runStatus").className = "status warn";
 
         if (event.stage === "application" && event.totalPages) {
@@ -303,6 +335,8 @@
           $("illProgress").style.width = `${Math.min(100, percent)}%`;
         }
       }
+
+      estimateTimer = window.setInterval(updateProgressStatus, 1000);
 
       while (true) {
         const { value, done } = await reader.read();
@@ -355,6 +389,7 @@
       $("runStatus").textContent = "Validation failed";
       $("runStatus").className = "status bad";
     } finally {
+      window.clearInterval(estimateTimer);
       $("extractBtn").disabled = false;
     }
   }

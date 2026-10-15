@@ -1,11 +1,7 @@
 (function () {
   "use strict";
 
-  const AMENDMENT_URL = "data/amendmentTemplates.json";
-
-  const QUESTION_MAPPING_URL = "data/questionMappings.json";
-
-  const REQUIREMENT_URL = "data/requirementTemplates.json";
+  const WORKSPACE_REFERENCE_URL = "data/workspace-reference.json";
 
   let amendmentTemplates = {};
   let questionMappings = {};
@@ -228,7 +224,7 @@ return true;
 
     /*
      * Organize every requirement by the category property
-     * in requirementTemplates.json.
+     * in data/workspace-reference.json.
      */
     const categories = {};
 
@@ -823,10 +819,11 @@ window.renderGlobalSavedRequirements = renderGlobalSavedRequirements;
   }
   async function loadEngineData() {
     try {
-      const amendmentData = await fetchJson(
-        AMENDMENT_URL,
-        "Amendment templates",
+      const referenceData = await fetchJson(
+        WORKSPACE_REFERENCE_URL,
+        "Workspace reference data",
       );
+      const amendmentData = referenceData.amendmentTemplates || {};
 
       amendmentTemplates = amendmentData.templates || {};
 
@@ -839,47 +836,20 @@ window.renderGlobalSavedRequirements = renderGlobalSavedRequirements;
         Object.keys(amendmentTemplates).length,
       );
 
-      try {
-        questionMappings = await fetchJson(
-          QUESTION_MAPPING_URL,
-          "Question mappings",
-        );
+      questionMappings = referenceData.questionMappings || {};
+      const requirementData = referenceData.requirementTemplates || {};
+      requirementTemplates = requirementData.templates || {};
+      requirementFormMappings = requirementData.formMappings || {};
 
-        console.log("Loaded question mappings.");
-      } catch (error) {
-        questionMappings = {};
-
-        console.warn(
-          "Question mappings did not load. " +
-            "Manual amendment selection will still work.",
-          error,
-        );
-      }
-
-      try {
-        const requirementData = await fetchJson(
-          REQUIREMENT_URL,
-          "Requirement templates",
-        );
-
-        requirementTemplates = requirementData.templates || {};
-
-        requirementFormMappings = requirementData.formMappings || {};
-
-        console.log(
-          "Loaded requirement templates:",
-          Object.keys(requirementTemplates).length,
-        );
-        console.log(
-          "Requirement template keys:",
-          Object.keys(requirementTemplates),
-        );
-      } catch (error) {
-        requirementTemplates = {};
-        requirementFormMappings = {};
-
-        console.error("Requirement templates did not load:", error);
-      }
+      console.log("Loaded question mappings.");
+      console.log(
+        "Loaded requirement templates:",
+        Object.keys(requirementTemplates).length,
+      );
+      console.log(
+        "Requirement template keys:",
+        Object.keys(requirementTemplates),
+      );
 
       engineLoaded = true;
 

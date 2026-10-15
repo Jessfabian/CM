@@ -1,6 +1,16 @@
+import os
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from pdf_validator import PageText, parse_application, selected_checkbox_option
+from pdf_validator import (
+  PageText,
+  configure_tesseract_data,
+  ocr_available,
+  parse_application,
+  selected_checkbox_option,
+)
 
 
 class SelectedCheckboxOptionTests(unittest.TestCase):
@@ -48,7 +58,7 @@ class ApplicationExtractionTests(unittest.TestCase):
       ),
       PageText(
         7,
-        "2. Frequency (Select one): [1] Annual [] Single Premium",
+        "2. Frequency (Select one): [¥] Annual [] Single Premium",
         "ocr",
       ),
     ]
@@ -57,6 +67,36 @@ class ApplicationExtractionTests(unittest.TestCase):
 
     self.assertEqual(fields["waiver"].value, "No")
     self.assertEqual(fields["frequency"].value, "Annual")
+
+
+class TesseractDiscoveryTests(unittest.TestCase):
+  def test_finds_debian_tesseract_english_data(self):
+    with TemporaryDirectory() as temporary_directory:
+      root = Path(temporary_directory)
+      executable = root / "bin" / "tesseract"
+      data_file = (
+        root
+        / "share"
+        / "tesseract-ocr"
+        / "5"
+        / "tessdata"
+        / "eng.traineddata"
+      )
+      executable.parent.mkdir(parents=True)
+      executable.touch()
+      data_file.parent.mkdir(parents=True)
+      data_file.touch()
+
+      with (
+        patch("pdf_validator.shutil.which", return_value=str(executable)),
+        patch.dict(os.environ, {"TESSDATA_PREFIX": ""}),
+      ):
+        configure_tesseract_data()
+        self.assertEqual(
+          Path(os.environ["TESSDATA_PREFIX"]).resolve(),
+          data_file.parent.resolve(),
+        )
+        self.assertTrue(ocr_available())
 
 
 if __name__ == "__main__":

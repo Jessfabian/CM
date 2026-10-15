@@ -1,0 +1,1390 @@
+{
+  "amendmentTemplates": {
+    "templates": {
+      "questionShouldInclude": {
+        "label": "Question Should Include",
+        "category": "General",
+        "template": "Question {question} of the {form} should include: {value}.",
+        "fields": [
+          "question",
+          "form",
+          "value"
+        ]
+      },
+      "questionIs": {
+        "label": "Question Is",
+        "category": "General",
+        "template": "Question {question} of the {form} is {value}.",
+        "fields": [
+          "question",
+          "form",
+          "value"
+        ]
+      },
+      "questionNotApplicable": {
+        "label": "Question Not Applicable",
+        "category": "General",
+        "template": "Question {question} of the {form} is not applicable.",
+        "fields": [
+          "question",
+          "form"
+        ]
+      },
+      "questionRangeIs": {
+        "label": "Question Range Is",
+        "category": "General",
+        "template": "Questions {questionRange} of the {form} are {value}.",
+        "fields": [
+          "questionRange",
+          "form",
+          "value"
+        ]
+      },
+      "questionRangeNotApplicable": {
+        "label": "Question Range Not Applicable",
+        "category": "General",
+        "template": "Questions {questionRange} of the {form} are not applicable.",
+        "fields": [
+          "questionRange",
+          "form"
+        ]
+      },
+      "sectionShouldInclude": {
+        "label": "Section Should Include",
+        "category": "General",
+        "template": "Section {section} of the {form} should include: {value}.",
+        "fields": [
+          "section",
+          "form",
+          "value"
+        ]
+      },
+      "ownerNameCorrection": {
+        "label": "Owner Name Correction",
+        "category": "Global Amendments",
+        "template": "The owner's name reflected on all forms in the application should read {value}.",
+        "fields": [
+          "value"
+        ]
+      },
+      "ownerAddressCorrection": {
+        "label": "Owner Address Correction",
+        "category": "Global Amendments",
+        "template": "The owner's address reflected on all forms in the application should read {value}.",
+        "fields": [
+          "value"
+        ]
+      },
+      "insuredNameCorrection": {
+        "label": "Insured Name Correction",
+        "category": "Global Amendments",
+        "template": "The insured's name reflected on all forms in the application should read {value}.",
+        "fields": [
+          "value"
+        ]
+      },
+      "insuredAddressCorrection": {
+        "label": "Insured Address Correction",
+        "category": "Global Amendments",
+        "template": "The insured's address reflected on all forms in the application should read {value}.",
+        "fields": [
+          "value"
+        ]
+      },
+      "signature": {
+        "label": "Signature",
+        "category": "Signatures",
+        "template": "The signature of {signer} on the {form} is {value}.",
+        "fields": [
+          "signer",
+          "form",
+          "value"
+        ]
+      },
+      "signedDate": {
+        "label": "Signed Date",
+        "category": "Signatures",
+        "template": "The {form} was signed by the {party} on {date}.",
+        "fields": [
+          "form",
+          "party",
+          "date"
+        ]
+      },
+      "signedLocation": {
+        "label": "Signed Location",
+        "category": "Signatures",
+        "template": "The {form} was signed by the {party} in {location}.",
+        "fields": [
+          "form",
+          "party",
+          "location"
+        ]
+      },
+      "ownerBeneficiaryMatchPolicy": {
+        "label": "Owner And Beneficiary Match Policy",
+        "category": "Owner/Beneficiary",
+        "template": "Beneficiary and Owner to be the same as specified on the policy specification pages of the policy.",
+        "fields": []
+      },
+      "ownerMatchPolicy": {
+        "label": "Owner Match Policy",
+        "category": "Owner/Beneficiary",
+        "template": "Owner to be the same as specified on the policy specification pages of the policy.",
+        "fields": []
+      },
+      "beneficiaryMatchPolicy": {
+        "label": "Beneficiary Match Policy",
+        "category": "Owner/Beneficiary",
+        "template": "Beneficiary to be the same as specified on the policy specification pages of the policy.",
+        "fields": []
+      },
+      "custodianDesignation": {
+        "label": "Custodian Designation",
+        "category": "Owner/Beneficiary",
+        "template": "Question {question} of the Part 1 is during the minority of the named {childType}, {custodian} shall be custodian for said {childType} under the {state} Uniform Transfers/Gifts to Minors Act.",
+        "fields": [
+          "question",
+          "childType",
+          "custodian",
+          "state"
+        ]
+      },
+      "deleteAdditionalInsured": {
+        "label": "Delete Additional Insured",
+        "category": "Deletion",
+        "template": "The information listed for Insured {insuredNumber} in the Part 1 application is hereby deleted and not applicable. All references to Insured {oldInsured} in the Part 1 application now pertains to Insured {newInsured}. There is only 1 Insured, {insuredName}.",
+        "fields": [
+          "insuredNumber",
+          "oldInsured",
+          "newInsured",
+          "insuredName"
+        ]
+      },
+      "deleteSignature": {
+        "label": "Delete Signature",
+        "category": "Deletion",
+        "template": "The signature of {signer} on the {form} is incorrect and hereby deleted.",
+        "fields": [
+          "signer",
+          "form"
+        ]
+      },
+      "illustrationConforms": {
+        "label": "Illustration Conforms",
+        "category": "Illustration",
+        "template": "Question N1 of Part 1 is, The sales illustration used for the proposed insured conforms to the policy as applied for.",
+        "fields": []
+      },
+      "illustrationNoIllustration": {
+        "label": "No Illustration Used",
+        "category": "Illustration",
+        "template": "Question N1 of Part 1 is, No sales illustration was used in the sale of the policy.",
+        "fields": []
+      },
+      "illustrationDoesNotConform": {
+        "label": "Illustration Does Not Conform",
+        "category": "Illustration",
+        "template": "Question N1 of Part 1 is, The sales illustration used for the proposed insured does not conform to the policy as applied for.",
+        "fields": []
+      }
+    },
+    "approvedPlanNames": [
+      "Whole Life 100",
+      "Whole Life 8 Pay",
+      "Whole Life 65",
+      "Whole Life 10 Pay",
+      "Whole Life 20 Pay",
+      "Whole Life 12 Pay",
+      "Universal Life Guard",
+      "SUL Guard",
+      "Whole Life HECV",
+      "Whole Life 95",
+      "Whole Life Guard 10 Pay",
+      "Whole Life 15 Pay",
+      "Apex VUL",
+      "Survivorship 100",
+      "Survivorship Whole Life 100",
+      "Survivorship 12",
+      "Survivorship Whole Life 12",
+      "CareChoice",
+      "Vantage Term ART",
+      "Vantage Term 10",
+      "Vantage Term 15",
+      "Vantage Term 15 ECP",
+      "Vantage Term 20",
+      "Vantage Term 20 ECP",
+      "Vantage Term 25",
+      "Vantage Term 25 ECP",
+      "Vantage Term 30",
+      "Vantage Term 30 ECP"
+    ]
+  },
+  "questionMappings": {
+    "global": {
+      "A1": "insuredNameCorrection",
+      "A3": "dobCorrection",
+      "A4": "questionIs",
+      "A5": "questionIs",
+      "A6": "addressCorrection",
+      "E1": "ownerArrangementOther",
+      "E2": "beneficiaryPrimary",
+      "F5": "replacementGrid",
+      "G4": "questionIs",
+      "G5": "questionIs"
+    },
+    "A2000": {
+      "A1": "insuredNameCorrection",
+      "A2": "questionIs",
+      "A3": "dobCorrection",
+      "A4": "questionIs",
+      "A5": "questionIs",
+      "A6": "addressCorrection",
+      "B1": "questionIs",
+      "B2": "questionIs",
+      "C2": "planNameCorrection",
+      "C3": "questionIs",
+      "C4": "questionIs",
+      "C5": "questionIs",
+      "C6": "questionIs",
+      "C7": "questionIs",
+      "C8": "questionIs",
+      "C9": "questionIs",
+      "C10": "questionIs",
+      "C11": "questionIs",
+      "C12A": "riderComponent",
+      "C12B": "riderComponent",
+      "C12C": "riderComponent",
+      "C12D": "questionIs",
+      "C13A": "questionIs",
+      "C13B": "questionIs",
+      "C13C": "questionIs",
+      "C13D": "questionIs",
+      "C13E": "questionIs",
+      "C14": "questionIs",
+      "C15": "shouldInclude",
+      "C16": "planNameCorrection",
+      "C17": "questionIs",
+      "C18": "questionIs",
+      "C19": "notApplicable",
+      "C20": "planNameCorrection",
+      "C21": "questionIs",
+      "C24": "questionIs",
+      "C25": "questionIs",
+      "C26": "questionIs",
+      "C27": "questionIs",
+      "C28A": "questionIs",
+      "C28B": "questionIs",
+      "C28C": "questionIs",
+      "C29": "riderComponent",
+      "C30": "notApplicable",
+      "C31": "shouldInclude",
+      "D1A": "questionIs",
+      "D1B": "questionIs",
+      "D1C": "questionIs",
+      "D2": "shouldInclude",
+      "D2A": "questionIs",
+      "D2B": "questionIs",
+      "D2C": "questionIs",
+      "D3": "questionIs",
+      "E1": "ownerArrangementOther",
+      "E2": "beneficiaryPrimary",
+      "F5": "replacementGrid",
+      "F8": "questionIs",
+      "F9": "questionIs",
+      "G4": "questionIs",
+      "G5": "questionIs",
+      "N1": "illustrationConforms",
+      "N2A": "questionIs",
+      "N2B": "questionIs",
+      "N2C": "questionIs"
+    },
+    "A2000NY": {
+      "A1": "insuredNameCorrection",
+      "A3": "dobCorrection",
+      "A4": "questionIs",
+      "A5": "questionIs",
+      "A6": "addressCorrection",
+      "A12": "questionIs",
+      "A12B": "questionIs",
+      "A12C": "questionIs",
+      "A12D": "questionIs",
+      "A12E": "questionIs",
+      "A13": "questionIs",
+      "A13A": "questionIs",
+      "A13B": "questionIs",
+      "A13C": "questionIs",
+      "A13D": "questionIs",
+      "B1": "questionIs",
+      "B2": "questionIs",
+      "C2": "planNameCorrection",
+      "C3": "questionIs",
+      "C4": "questionIs",
+      "C5": "questionIs",
+      "C6": "questionIs",
+      "C7": "questionIs",
+      "C8": "questionIs",
+      "C9": "questionIs",
+      "C10": "questionIs",
+      "C11A": "riderComponent",
+      "C11B": "riderComponent",
+      "C11C": "riderComponent",
+      "C11D": "questionIs",
+      "C12A": "questionIs",
+      "C12B": "questionIs",
+      "C12C": "questionIs",
+      "C12D": "questionIs",
+      "C12E": "questionIs",
+      "C13": "questionIs",
+      "C14": "planNameCorrection",
+      "C15": "questionIs",
+      "C16": "questionIs",
+      "C17": "planNameCorrection",
+      "C18": "questionIs",
+      "C22": "questionIs",
+      "C23": "questionIs",
+      "C23A": "questionIs",
+      "C23B": "questionIs",
+      "C24": "questionIs",
+      "C25A": "riderComponent",
+      "C25B": "riderComponent",
+      "C25C": "riderComponent",
+      "C26": "riderComponent",
+      "D1A": "questionIs",
+      "D1B": "questionIs",
+      "D1C": "questionIs",
+      "D2": "shouldInclude",
+      "D2A": "questionIs",
+      "D2B": "questionIs",
+      "D2C": "questionIs",
+      "D3": "questionIs",
+      "E1": "ownerArrangementOther",
+      "E2": "beneficiaryPrimary",
+      "F5": "replacementGrid",
+      "F8": "questionIs",
+      "F9": "questionIs",
+      "G4": "questionIs",
+      "G5": "questionIs",
+      "N1": "shouldInclude"
+    },
+    "A1001": {
+      "A1": "insuredNameCorrection",
+      "A3": "dobCorrection",
+      "A4": "questionIs",
+      "A5": "questionIs",
+      "A6": "addressCorrection",
+      "A13": "questionIs",
+      "A13A": "questionIs",
+      "A13B": "questionIs",
+      "A13C": "questionIs",
+      "A14": "questionIs",
+      "A14A": "questionIs",
+      "A14B": "questionIs",
+      "A14C": "questionIs",
+      "A14D": "questionIs",
+      "B2": "questionIs",
+      "C5": "replacementGrid"
+    },
+    "aliases": {
+      "A2000-0217": "A2000",
+      "A2000-0815": "A2000",
+      "A2000NY-0921": "A2000NY",
+      "A1001NY": "A1001",
+      "A1001CA": "A1001"
+    }
+  },
+  "requirementTemplates": {
+    "templates": {
+      "newSignedForm": {
+        "label": "New Signed Form",
+        "category": "Forms",
+        "template": "Please submit a newly signed {formName} with updated signatures and dates because {reason}.",
+        "fields": [
+          "formName",
+          "reason"
+        ]
+      },
+      "correctedForm": {
+        "label": "Corrected Form - Initials Required",
+        "category": "Forms",
+        "template": "Please resubmit the {formName} reflecting {correctionReason}. Please have the {person} initial and date by the correction(s).",
+        "fields": [
+          "formName",
+          "correctionReason",
+          "person"
+        ]
+      },
+      "correctedsForm": {
+        "label": "Corrected Form - No Initials Required",
+        "category": "Forms",
+        "template": "Please resubmit the {formName} reflecting {correctionReason}.",
+        "fields": [
+          "formName",
+          "correctionReason"
+        ]
+      },
+      "unsignedForm": {
+        "label": "Unsigned Form",
+        "category": "Forms",
+        "template": "Please resubmit the {formName} with the required signatures and dates, as the form submitted was unsigned.",
+        "fields": [
+          "formName"
+        ]
+      },
+      "unauthorizedDigitalSignature": {
+        "label": "Unauthorized Digital Signature",
+        "category": "Forms",
+        "template": "Please submit the following forms as an unauthorized digital signature was used. Please note we currently only accept MassMutual DocuSign, Approved Agency DocuSign, and hand-signed signatures. \n\nForms requiring correction:\n{forms}",
+        "fields": [
+          "forms"
+        ]
+      },
+      "outdatedForm": {
+        "label": "Outdated Form",
+        "category": "Forms",
+        "template": "The {formName} submitted is an outdated version. {acceptanceDetail}",
+        "fields": [
+          "formName",
+          "acceptanceDetail"
+        ]
+      },
+      "missingForm": {
+        "label": "Missing Form",
+        "category": "Forms",
+        "template": "Please submit the {formName} as it was not included with the application and is required.",
+        "fields": [
+          "formName"
+        ]
+      },
+      "blankForm": {
+        "label": "Blank Form Submitted",
+        "category": "Forms",
+        "template": "Please resubmit the {formName}, as the form submitted was blank.",
+        "fields": [
+          "formName"
+        ]
+      },
+      "questionMissing": {
+        "label": "Question Not Answered",
+        "category": "Questions",
+        "template": "Please provide a response to question {questionNumber} as it was unanswered.",
+        "fields": [
+          "questionNumber"
+        ]
+      },
+      "questionConflicts": {
+        "label": "Conflicting Answers",
+        "category": "Questions",
+        "template": "Please clarify the response to questions {questionOne} and {questionTwo}, as the answers conflict.",
+        "fields": [
+          "questionOne",
+          "questionTwo"
+        ]
+      },
+      "questionsNotAnswered": {
+        "label": "Multiple Questions Not Answered",
+        "category": "Questions",
+        "template": "Please provide answers for questions {questionNumbers} of the {formName}, as they were not answered.",
+        "fields": [
+          "questionNumbers",
+          "formName"
+        ]
+      },
+      "questionConflict": {
+        "label": "Conflicting Question Responses",
+        "category": "Questions",
+        "template": "Please confirm {subject}. {formName} indicates {answerOne}; however, {formTwo} indicates {answerTwo}.",
+        "fields": [
+          "subject",
+          "formName",
+          "answerOne",
+          "formTwo",
+          "answerTwo"
+        ]
+      },
+      "missingPersonInformation": {
+        "label": "Missing Person Information",
+        "category": "Questions",
+        "template": "Please provide the {personType}'s {informationNeeded}, as it was not provided.",
+        "fields": [
+          "personType",
+          "informationNeeded"
+        ]
+      },
+      "missingEntityInformation": {
+        "label": "Missing Entity Information",
+        "category": "Questions",
+        "template": "Please provide the owner entity's {informationNeeded}.",
+        "fields": [
+          "informationNeeded"
+        ]
+      },
+      "signerTitleRequired": {
+        "label": "Entity Signer Title Required",
+        "category": "Questions",
+        "template": "Please provide the title of the individual signing on behalf of the {entityName}.",
+        "fields": [
+          "entityName"
+        ]
+      },
+      "policyDesignMismatch": {
+        "label": "Policy Design Mismatch",
+        "category": "Policy Design",
+        "template": "Please confirm the {designElement}: The Part 1 indicates {applicationValue}; however, the illustration indicates {illustrationValue}.",
+        "fields": [
+          "designElement",
+          "applicationValue",
+          "illustrationValue"
+        ]
+      },
+      "multiplePolicyDesignIssues": {
+        "label": "Multiple Policy Design Issues",
+        "category": "Policy Design",
+        "template": "Please confirm the intended policy design for the following items:\n{designIssues}",
+        "fields": [
+          "designIssues"
+        ]
+      },
+      "planTypeMissing": {
+        "label": "Plan Type Not Answered",
+        "category": "Policy Design",
+        "template": "Please confirm the {applicationValue}, as question {questionNumber} of the Part 1 was not answered.",
+        "fields": [
+          "applicationValue",
+          "questionNumber"
+        ]
+      },
+      "riderIllustrationRequired": {
+        "label": "Rider Illustration Required",
+        "category": "Policy Design",
+        "template": "Please submit an unsigned illustration reflecting the {riderName} rider.",
+        "fields": [
+          "riderName"
+        ]
+      },
+      "formSignatureLocation": {
+        "label": "Form Signature Location",
+        "category": "General",
+        "template": "Please provide the city and state in which the {formName} was signed by the {signer}.",
+        "fields": [
+          "formName",
+          "signer"
+        ]
+      },
+      "beneficiaryMismatch": {
+        "label": "Beneficiary Mismatch",
+        "category": "Owner/Bene",
+        "template": "Please confirm the intended beneficiary designation. The Part 1 indicates {partOneValue}; however, the Beneficiary Designation Form indicates {beneficiaryFormValue}.",
+        "fields": [
+          "partOneValue",
+          "beneficiaryFormValue"
+        ]
+      },
+      "beneficiaryRelationship": {
+        "label": "Beneficiary Relationship",
+        "category": "Owner/Bene",
+        "template": "Please provide the relationship of the beneficiary or beneficiaries to the insured.",
+        "fields": []
+      },
+      "beneficiaryPercentageMissing": {
+        "label": "Beneficiary Percentage Missing",
+        "category": "Owner/Bene",
+        "template": "Please confirm the beneficiary percentage, as it was not provided.",
+        "fields": []
+      },
+      "beneficiaryPercentageInvalid": {
+        "label": "Beneficiary Percentage Invalid",
+        "category": "Owner/Bene",
+        "template": "Please confirm the intended beneficiary percentage. The form indicates {currentValue}; however, the total beneficiary allocation must equal 100%.",
+        "fields": [
+          "currentValue"
+        ]
+      },
+      "ownerMismatch": {
+        "label": "Owner Mismatch",
+        "category": "Owner/Bene",
+        "template": "Please confirm the owner of the policy."
+      },
+      "confirmInformation": {
+        "label": "Confirm Information",
+        "category": "Clarification",
+        "template": "Please confirm the {personType}'s {informationType}.",
+        "fields": [
+          "personType",
+          "informationType"
+        ]
+      },
+      "nySignedIllustration": {
+        "label": "NY Signed Illustration Required",
+        "category": "NY",
+        "template": "Please submit a signed sales illustration matching the Part 1. The illustration submitted is {illustrationIssue}. This is required for New York policies under Regulation 74.",
+        "fields": [
+          "illustrationIssue"
+        ]
+      },
+      "nyIllustrationAtApproval": {
+        "label": "New York Illustration Required at Approval",
+        "category": "Forms",
+        "template": "Please submit a signed sales illustration as applied for. This is required before issue.",
+        "fields": []
+      },
+      "unsignedIllustration": {
+        "label": "Unsigned Illustration Required",
+        "category": "Forms",
+        "template": "Please submit an unsigned sales illustration {illustrationDetail}.",
+        "fields": [
+          "illustrationDetail"
+        ]
+      },
+      "NYnewSignedForm": {
+        "label": "New NY Signed Form",
+        "category": "NYs",
+        "template": "Please resubmit the Part 1 Application with updated signatures and dates, as it must be signed before the illustration. This is required for all NY policies to comply with Regulation 74.",
+        "fields": []
+      },
+      "licensingRequirement": {
+        "label": "Licensing NIGO",
+        "category": "General",
+        "template": "Please note, this case currently has an open licensing requirement. Most requirements are resolved prior to approval; however, if the outstanding requirement is due to an inactive license resulting in incorrect signatures date, new paperwork will need to be signed by both the client and the advisor. A follow-up email will be sent from one of our Field Service Specialists in advisor Operations on the next steps to clear the licensing requirement.",
+        "fields": []
+      },
+      "ageChangeConfirmation": {
+        "label": "Age Change Confirmation",
+        "category": "General",
+        "template": "An age change occurred after the application was submitted. Please advise whether the policy should be issued at current age or with saved age.",
+        "fields": []
+      },
+      "absoluteAssignment1035": {
+        "label": "1035 Exchange Absolute Assignment",
+        "category": "General",
+        "template": "We are missing a fully completed Absolute Assignment form (P4051) for the 1035x. This form will need to be wet signed, and we can obtain this form on delivery.",
+        "fields": []
+      },
+      "IDRequired": {
+        "label": "Copy Required",
+        "category": "General",
+        "template": "Please provide a copy of the {informationNeeded} for the {personType}.",
+        "fields": [
+          "personType",
+          "informationNeeded"
+        ]
+      },
+      "generalRequirement": {
+        "label": "General Requirement",
+        "category": "General",
+        "template": "Please provide {requirementDetail}.",
+        "fields": [
+          "requirementDetail"
+        ]
+      }
+    }
+  },
+  "stateNotes": {
+    "NY": [
+      "Reg 74 Illustration Review Required",
+      "Reg 187 Initial Review Required",
+      "Signed Matching Illustration Required",
+      "FR2361 Required",
+      "F5500NY Not Acceptable"
+    ],
+    "CA": [
+      "Producer License Number Required On Illustration"
+    ],
+    "WA": [
+      "All Cross-Outs Must Be Amended"
+    ],
+    "TX": [
+      "If Owner Lives In Texas Contract State Must Be Texas"
+    ],
+    "AK": [
+      "Risk Located State",
+      "Agent Must Be Licensed In Alaska"
+    ],
+    "CO": [
+      "Risk Located State",
+      "Agent Must Be Licensed In Colorado"
+    ],
+    "MO": [
+      "If Owner Lives In Missouri Contract State Must Be Missouri"
+    ],
+    "PA": [
+      "Review F6262 Requirements"
+    ]
+  },
+  "stateRequirements": {
+    "NY": {
+      "forms": [
+        "A2000P-NY",
+        "A50NY",
+        "FR2361",
+        "F5159NY",
+        "F5248NY",
+        "F6484",
+        "F6512",
+        "F6734NY",
+        "N201NY"
+      ]
+    },
+    "CA": {
+      "forms": [
+        "A2000P-CA",
+        "A52CA",
+        "F5159CA",
+        "F5248CA",
+        "N201CA",
+        "F5436CA"
+      ]
+    },
+    "TX": {
+      "forms": [
+        "A2000P-TX",
+        "ICC12A50",
+        "ICC18F8186",
+        "N201TX",
+        "F6487"
+      ]
+    },
+    "FL": {
+      "forms": [
+        "A2000P-FL",
+        "A50FL",
+        "F5159FL",
+        "F5248FL",
+        "N201FL",
+        "F5436FL"
+      ]
+    },
+    "PA": {
+      "forms": [
+        "A2000P-PA",
+        "ICC12A50",
+        "ICC18F8186",
+        "F5436PA"
+      ]
+    },
+    "WA": {
+      "forms": [
+        "A2000P-WA",
+        "ICC12A50",
+        "N201WA",
+        "F5436WA"
+      ]
+    },
+    "NJ": {
+      "forms": [
+        "ICC17A2000-US 0217",
+        "A1002P-NJ",
+        "F5159",
+        "F5248",
+        "F6487NJ",
+        "FR2089"
+      ]
+    },
+    "MA": {
+      "forms": [
+        "A2000P-MA",
+        "FR2089",
+        "F5436MA",
+        "F7004MA",
+        "F5500MA",
+        "N201MA"
+      ]
+    },
+    "CT": {
+      "forms": [
+        "A2000P-CT",
+        "F5159",
+        "F5248",
+        "N201CT",
+        "FR2089"
+      ]
+    },
+    "CO": {
+      "forms": [
+        "A2000P-CO",
+        "N201CO",
+        "FR2089",
+        "F6487"
+      ]
+    }
+  },
+  "initialReviewWorkflow": {
+    "caseSetup": {
+      "title": "Case Setup",
+      "steps": [
+        "Confirm policy number",
+        "Confirm insured name",
+        "Confirm contract state",
+        "Confirm system",
+        "Confirm signature method",
+        "Review companion cases"
+      ]
+    },
+    "trexReview": {
+      "title": "TreX Review",
+      "steps": [
+        "Review all images in TreX",
+        "Verify all Part 1 pages received",
+        "Verify correct state version",
+        "Review Misc Contractual images",
+        "Review email images",
+        "Review APS images",
+        "Review Part 2 images",
+        "Determine if reindexing is required"
+      ]
+    },
+    "campirReview": {
+      "title": "CaMPIR Review",
+      "steps": [
+        "Place of Birth Unknown",
+        "PO Box Address",
+        "Entity Owner",
+        "Trust Owner",
+        "Group Bill",
+        "Alternate or Additional Policy",
+        "Premium Financing",
+        "Loan Carryover",
+        "Sales Illustration",
+        "Employee Sponsored Plan",
+        "Viatical",
+        "SPIA",
+        "Beneficiary Dollar Amounts",
+        "Unadmitted Replacement",
+        "Source Of Funds Review",
+        "Trusted ID",
+        "PCR"
+      ]
+    },
+    "completion": {
+      "title": "Completion",
+      "steps": [
+        "General Note Completed",
+        "Requirements Posted",
+        "Amendments Entered",
+        "BINGO Completed",
+        "Status Changed To Underwriter Review",
+        "Initial Review Email Sent"
+      ]
+    }
+  },
+  "stateManifest": {
+    "states": [
+      {
+        "state": "AL",
+        "displayName": "Alabama",
+        "file": "AL.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "AK",
+        "displayName": "Alaska",
+        "file": "AK.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "AZ",
+        "displayName": "Arizona",
+        "file": "AZ.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "AR",
+        "displayName": "Arkansas",
+        "file": "AR.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "CA",
+        "displayName": "California",
+        "file": "CA.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "CO",
+        "displayName": "Colorado",
+        "file": "CO.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "CT",
+        "displayName": "Connecticut",
+        "file": "CT.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "DE",
+        "displayName": "Delaware",
+        "file": "DE.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "DC",
+        "displayName": "District of Columbia",
+        "file": "DC.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "FL",
+        "displayName": "Florida",
+        "file": "FL.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "GA",
+        "displayName": "Georgia",
+        "file": "GA.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "HI",
+        "displayName": "Hawaii",
+        "file": "HI.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "ID",
+        "displayName": "Idaho",
+        "file": "ID.json",
+        "formCount": 14,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "IL",
+        "displayName": "Illinois",
+        "file": "IL.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "IN",
+        "displayName": "Indiana",
+        "file": "IN.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "IA",
+        "displayName": "Iowa",
+        "file": "IA.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "KS",
+        "displayName": "Kansas",
+        "file": "KS.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "KY",
+        "displayName": "Kentucky",
+        "file": "KY.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "LA",
+        "displayName": "Louisiana",
+        "file": "LA.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "ME",
+        "displayName": "Maine",
+        "file": "ME.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MD",
+        "displayName": "Maryland",
+        "file": "MD.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MA",
+        "displayName": "Massachusetts",
+        "file": "MA.json",
+        "formCount": 18,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MI",
+        "displayName": "Michigan",
+        "file": "MI.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MN",
+        "displayName": "Minnesota",
+        "file": "MN.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MS",
+        "displayName": "Mississippi",
+        "file": "MS.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MO",
+        "displayName": "Missouri",
+        "file": "MO.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "MT",
+        "displayName": "Montana",
+        "file": "MT.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NE",
+        "displayName": "Nebraska",
+        "file": "NE.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NV",
+        "displayName": "Nevada",
+        "file": "NV.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NH",
+        "displayName": "New Hampshire",
+        "file": "NH.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NJ",
+        "displayName": "New Jersey",
+        "file": "NJ.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NM",
+        "displayName": "New Mexico",
+        "file": "NM.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NY",
+        "displayName": "New York",
+        "file": "NY.json",
+        "formCount": 22,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "NC",
+        "displayName": "North Carolina",
+        "file": "NC.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "ND",
+        "displayName": "North Dakota",
+        "file": "ND.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "OH",
+        "displayName": "Ohio",
+        "file": "OH.json",
+        "formCount": 18,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "OK",
+        "displayName": "Oklahoma",
+        "file": "OK.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "OR",
+        "displayName": "Oregon",
+        "file": "OR.json",
+        "formCount": 18,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "PA",
+        "displayName": "Pennsylvania",
+        "file": "PA.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "PR",
+        "displayName": "Puerto Rico",
+        "file": "PR.json",
+        "formCount": 14,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "RI",
+        "displayName": "Rhode Island",
+        "file": "RI.json",
+        "formCount": 17,
+        "sourceStatus": "state-chart-baseline"
+      },
+      {
+        "state": "SC",
+        "displayName": "South Carolina",
+        "file": "SC.json",
+        "formCount": 14,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "SD",
+        "displayName": "South Dakota",
+        "file": "SD.json",
+        "formCount": 14,
+        "sourceStatus": "state-chart-baseline"
+      },
+      {
+        "state": "TN",
+        "displayName": "Tennessee",
+        "file": "TN.json",
+        "formCount": 14,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "TX",
+        "displayName": "Texas",
+        "file": "TX.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "UT",
+        "displayName": "Utah",
+        "file": "UT.json",
+        "formCount": 15,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "VT",
+        "displayName": "Vermont",
+        "file": "VT.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "VA",
+        "displayName": "Virginia",
+        "file": "VA.json",
+        "formCount": 18,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "WA",
+        "displayName": "Washington",
+        "file": "WA.json",
+        "formCount": 16,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "WV",
+        "displayName": "West Virginia",
+        "file": "WV.json",
+        "formCount": 17,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "WI",
+        "displayName": "Wisconsin",
+        "file": "WI.json",
+        "formCount": 18,
+        "sourceStatus": "application-package-and-state-chart"
+      },
+      {
+        "state": "WY",
+        "displayName": "Wyoming",
+        "file": "WY.json",
+        "formCount": 14,
+        "sourceStatus": "application-package-and-state-chart"
+      }
+    ]
+  },
+  "families": {
+    "california": {
+      "family": "california",
+      "forms": {
+        "additionalInsured": "A1001CA",
+        "part2": "A52CA",
+        "juvenilePart2": "A55CA",
+        "beneficiary": "F5159CA",
+        "conversionSupplement": "FR2089CA",
+        "foreignSupplement": "F6290CA",
+        "hipaa": "F8186GEN",
+        "ltcWorksheet": "FR2118CA",
+        "ltcPackage": "LTCR-CA",
+        "ownerDesignation": "F5248CA",
+        "replacement": "F5436CA"
+      }
+    },
+    "ct_nj": {
+      "family": "ct_nj",
+      "forms": {
+        "ltcWorksheet": "FR2118GEN",
+        "hipaaGenericForA1500": true,
+        "ownerGenericForA1500": true,
+        "beneficiaryGenericForA1500": true
+      }
+    },
+    "districtOfColumbia": {
+      "family": "districtOfColumbia",
+      "forms": {
+        "additionalInsured": "A1001DC",
+        "part2": "A50DC",
+        "beneficiary": "F5159DC",
+        "foreignSupplement": "F6290DC",
+        "ownerDesignation": "F5248DC"
+      },
+      "replacementForm": null
+    },
+    "florida": {
+      "family": "florida",
+      "forms": {
+        "additionalInsured": "A1001FL",
+        "part2": "A50FL",
+        "beneficiary": "F5159FL",
+        "conversionSupplement": "FR2089FL",
+        "foreignSupplement": "F6290FL",
+        "ltcWorksheet": "FR2118FL",
+        "ltcPackage": "LTCR-FL",
+        "ownerDesignation": "F5248FL",
+        "replacement": "F5436FL"
+      }
+    },
+    "generic": {
+      "family": "generic",
+      "forms": {
+        "additionalInsured": "A1001GEN",
+        "part2": "A50GEN",
+        "beneficiary": "F5159GEN",
+        "conversionSupplement": "FR2089GEN",
+        "hipaa": "F8186GEN",
+        "ownerDesignation": "F5248GEN"
+      }
+    },
+    "massachusetts": {
+      "family": "massachusetts",
+      "extends": "standardICC_HIV",
+      "extraForms": [
+        "F7004MA",
+        "F5500MA",
+        "N220-MA-1205",
+        "N220-MA-620"
+      ]
+    },
+    "minnesota": {
+      "family": "minnesota",
+      "extends": "standardICC",
+      "forms": {
+        "disclosureAuthorization": "A61MN"
+      },
+      "notes": [
+        "MNGA no longer required"
+      ]
+    },
+    "newYork": {
+      "family": "newYork",
+      "forms": {
+        "additionalInsured": "A1001NY",
+        "part2": "A50NY",
+        "beneficiary": "F5159NY",
+        "conversionSupplement": "FR2089NY",
+        "foreignSupplement": "F6290NY",
+        "ownerDesignation": "F5248NY",
+        "part1Authorization": "FR2361",
+        "replacement": "F6484",
+        "replacementNotice": "F6512",
+        "termReplacement": "FR1126NY",
+        "trustCertificate": "F6734NY",
+        "variableLifeSupplement": "F3669",
+        "minimumDeathBenefitDisclosure": "N201-NY-399"
+      }
+    },
+    "pennsylvania": {
+      "family": "pennsylvania",
+      "extends": "standardICC_HIV",
+      "extraForms": [
+        "F6262"
+      ]
+    },
+    "southDakota": {
+      "family": "southDakota",
+      "forms": {
+        "additionalInsured": "A1001SD",
+        "part2": "A50SD",
+        "beneficiary": "F5159SD",
+        "conversionSupplement": "FR2089SD",
+        "ltcWorksheet": "FR2118SD",
+        "ltcPackage": "LTCR-SD",
+        "ownerDesignation": "F5248SD"
+      }
+    },
+    "standardICC": {
+      "family": "standardICC",
+      "forms": {
+        "additionalInsured": "ICC17A1001",
+        "part2": "ICC12A50",
+        "beneficiary": "ICC13F5159",
+        "conversionSupplement": "ICC13FR2089",
+        "hipaa": "ICC18F8186",
+        "ownerDesignation": "ICC15F5248",
+        "ltcWorksheet": "ICC19FR2118",
+        "replacementForm": "F6487"
+      }
+    },
+    "standardICC_HIV": {
+      "family": "standardICC_HIV",
+      "extends": "standardICC",
+      "features": [
+        "hivForm"
+      ]
+    },
+    "washington": {
+      "family": "washington",
+      "extends": "standardICC_HIV",
+      "extraForms": [
+        "F5436WA",
+        "F7011WA"
+      ],
+      "rules": [
+        "UW cannot begin without F5436WA",
+        "Cross-outs must be amended"
+      ]
+    }
+  }
+}

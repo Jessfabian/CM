@@ -47,17 +47,17 @@ For Term applications, page 4 receives a focused OCR pass for the waiver
 checkbox when full-page OCR does not preserve the mark. Page 7 recognizes
 checkbox marks that OCR represents as a digit, such as `[1] Annual`.
 
-## GitHub Pages test deployment
+## Hosted GitHub Pages deployment
 
-GitHub Pages cannot execute the Python API. For a testing deployment, use the
-Render Blueprint at the project root to deploy a separate free backend,
-configured with the `https://jessfabian.github.io` Pages origin,
-with `window.VALIDATOR_API_BASE` in `scripts/validator-config.js` set to
-`https://case-manager-validator.onrender.com`.
+GitHub Pages cannot execute the Python API. The Pages frontend is configured
+to use the active hosted Render backend at
+`https://case-manager-validator.onrender.com`. The Render Blueprint at the
+project root configures the `https://jessfabian.github.io` Pages origin;
+`window.VALIDATOR_API_BASE` in `scripts/validator-config.js` sets the API URL.
 
 The free backend sleeps when idle and is not suitable for dependable
 production use. The API has no authentication, and CORS is not access control.
-Only use synthetic test PDFs on this public test service; do not upload real
+Only use synthetic test PDFs on this public service; do not upload real
 customer or policy documents.
 
 ## Project flow

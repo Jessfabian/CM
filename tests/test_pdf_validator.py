@@ -30,12 +30,21 @@ class SelectedCheckboxOptionTests(unittest.TestCase):
     )
 
   def test_detects_ocr_mark_variants_for_no(self):
-    for marker in ("WI]", "MW]", "WJ"):
+    for marker in ("WI]", "WI", "MW]", "WJ"):
       with self.subTest(marker=marker):
         self.assertEqual(
           selected_checkbox_option(f"{marker} No", ["Yes", "No"]),
           "No",
         )
+
+  def test_detects_ocr_mark_with_v_one_inside_checkbox(self):
+    self.assertEqual(
+      selected_checkbox_option(
+        "L_] Monthly [] Quarterly [J] Semi-annual [v1] Annual",
+        ["Monthly", "Quarterly", "Semi-annual", "Annual"],
+      ),
+      "Annual",
+    )
 
   def test_does_not_treat_an_empty_box_as_selected(self):
     self.assertEqual(
@@ -60,6 +69,34 @@ class ApplicationExtractionTests(unittest.TestCase):
       PageText(
         7,
         "2. Frequency (Select one): [¥] Annual [] Single Premium",
+        "ocr",
+      ),
+    ]
+
+    fields = parse_application(pages)
+
+    self.assertEqual(fields["waiver"].value, "No")
+    self.assertEqual(fields["frequency"].value, "Annual")
+
+  def test_term_waiver_and_frequency_from_pasted_ocr_shapes(self):
+    pages = [
+      PageText(
+        4,
+        (
+          "Plan: Vantage Term ART\n"
+          "18. Waiver of Premium (for Disability) Rider: "
+          "ility) Rider: LJ Yes WI No"
+        ),
+        "ocr",
+      ),
+      PageText(
+        7,
+        (
+          "G Life Payment Information\n"
+          "2. Frequency (Select one): L_] Monthly (PAC/Group only) "
+          "[] Quarterly [J] Semi-annual [v1] Annual "
+          "[_] Single Premium (if available)"
+        ),
         "ocr",
       ),
     ]

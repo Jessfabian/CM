@@ -21,12 +21,12 @@ different port. PDF OCR additionally requires Tesseract with English language
 data and Poppler; see [Illustration Validation setup](./Illustration%20Validation/README.md)
 for installation details and the standalone validator workflow.
 
-## Connect a GitHub Pages frontend to the test API
+## Hosted validator API
 
-GitHub Pages publishes static files and cannot run the Python validator. A
-Render Blueprint and Dockerfile are included to deploy the API as a separate
-free service for testing. In Render, create a Blueprint from this repository
-and deploy it; the allowed Pages origin is set to
+GitHub Pages publishes static files and cannot run the Python validator. The
+Pages frontend is configured to use the active hosted Render API at
+`https://case-manager-validator.onrender.com`; the Render Blueprint and
+Dockerfile are included in this project. The allowed Pages origin is set to
 `https://jessfabian.github.io` (origins do not include a path). The service URL
 is configured in `scripts/validator-config.js`:
 
@@ -35,12 +35,12 @@ window.VALIDATOR_API_BASE = "https://case-manager-validator.onrender.com";
 ```
 
 Publish any config changes with the Pages site. The free Render service sleeps
-after inactivity and has a cold start; it is for testing, not dependable
-production use. This API currently has no user authentication. CORS only limits
-which websites can read responses in a browser; it does not prevent direct API
-requests. Do not upload real customer or policy documents to this public test
-service. Use synthetic test PDFs until an approved, authenticated hosting
-solution is in place.
+after inactivity and may have a cold start. It is available for testing, not
+dependable production use. This API currently has no user authentication. CORS
+only limits which websites can read responses in a browser; it does not prevent
+direct API requests. Do not upload real customer or policy documents to this
+public service. Use synthetic test PDFs until an approved, authenticated
+hosting solution is in place.
 
 ## Project map
 

@@ -336,9 +336,9 @@ def selected_checkbox_option(text: Any, options: Iterable[str]) -> str:
     clean(text),
     flags=re.I,
   )
-  marker = (r"(?:\[\s*(?:[xX✓✔¥]|[1-9])\s*\]|\(\s*[xX✓✔¥]\s*\)|"
+  marker = (r"(?:\[\s*(?:[xX✓✔¥]|[1-9]|v[1lI])\s*\]|\(\s*[xX✓✔¥]\s*\)|"
         r"[xX✓✔¥]\s*\]|\[\s*[xX✓✔¥]|(?:^|\s)[xX✓✔¥Oo0]\s*|"
-        r"\bLX!|\bEX]|\bOXI|\bDX!|\b(?:MW\]|WI\]|WJ))")
+        r"\bLX!|\bEX]|\bOXI|\bDX!|\b(?:MW|WI|WJ)\]?)")
   for option in options:
     if re.search(marker + r"\s*" + re.escape(option), value, re.I):
       return option

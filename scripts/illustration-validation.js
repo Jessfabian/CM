@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const API_URL = "/api/validate-stream";
+  const API_BASE = String(window.VALIDATOR_API_BASE || "").replace(/\/+$/, "");
+  const API_URL = `${API_BASE}/api/validate-stream`;
 
   const validatorState = {
     applicationFile: null,
@@ -304,7 +305,7 @@
     }
 
     try {
-      const response = await fetch("/api/health");
+      const response = await fetch(`${API_BASE}/api/health`);
 
       if (!response.ok) {
         throw new Error("Service health check failed.");

@@ -1,6 +1,8 @@
 (() => {
   "use strict";
 
+  const API_BASE = String(window.VALIDATOR_API_BASE || "").replace(/\/+$/, "");
+
   const $ = (id) => document.getElementById(id);
   const files = { app: null, ill: null };
   let selectedDocuments = [];
@@ -254,7 +256,7 @@
     form.append("state", $("state").value);
 
     try {
-      const response = await fetch("/api/validate-stream", {
+      const response = await fetch(`${API_BASE}/api/validate-stream`, {
         method: "POST",
         body: form
       });
@@ -359,7 +361,7 @@
 
   async function healthCheck() {
     try {
-      const response = await fetch("/api/health");
+      const response = await fetch(`${API_BASE}/api/health`);
       if (!response.ok) throw new Error();
       const health = await response.json();
       const missingTools = [];
@@ -380,7 +382,9 @@
     } catch {
       $("serverBadge").textContent = "Python service unavailable";
       $("serverBadge").className = "status bad";
-      showError("Start the site with: python app.py. Do not open index.html directly.");
+      showError(
+        "Python validation service unavailable. Check the configured backend and try again."
+      );
     }
   }
 

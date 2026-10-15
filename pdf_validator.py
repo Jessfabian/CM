@@ -43,6 +43,7 @@ def configure_tesseract_data() -> None:
   candidates = (
     binary_root / "share" / "tessdata",
     binary_root / "share",
+    *binary_root.glob("share/tesseract-ocr/*/tessdata"),
   )
   for candidate in candidates:
     if (candidate / "eng.traineddata").is_file():
@@ -69,6 +70,9 @@ def ocr_available() -> bool:
     prefix / "tessdata",
     executable_path.parent / "tessdata",
     executable_path.parent.parent / "share" / "tessdata",
+    *executable_path.parent.parent.glob(
+      "share/tesseract-ocr/*/tessdata"
+    ),
   )
   return any(
     (directory / "eng.traineddata").is_file()

@@ -59,6 +59,31 @@ def health():
     )
 
 
+@app.after_request
+def add_api_cors_headers(response: Response) -> Response:
+    if not request.path.startswith("/api/"):
+        return response
+
+    origin = request.headers.get("Origin")
+    allowed_origins = {
+        configured_origin.strip().rstrip("/")
+        for configured_origin in os.environ.get(
+            "APP_ALLOWED_ORIGINS", ""
+        ).split(",")
+        if configured_origin.strip()
+    }
+    if origin in allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = (
+            "GET, POST, OPTIONS"
+        )
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Access-Control-Max-Age"] = "600"
+        response.headers.add("Vary", "Origin")
+
+    return response
+
+
 @app.post("/api/validate")
 def validate_documents():
     application_file = request.files.get("application")
@@ -445,6 +470,15 @@ def is_pdf(filename: str | None) -> bool:
 
 @app.get("/")
 def home_page():
+    if os.environ.get("APP_API_ONLY", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return jsonify(
+            {"error": "This service provides the validator API."}
+        ), 404
+
     return send_from_directory(PROJECT_ROOT, "home.html")
 
 @app.get("/illustration-validation")
@@ -454,6 +488,15 @@ def illustration_validation_page():
 
 @app.get("/<path:requested_path>")
 def website_file(requested_path: str):
+    if os.environ.get("APP_API_ONLY", "").lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return jsonify(
+            {"error": "This service provides the validator API."}
+        ), 404
+
     return send_from_directory(PROJECT_ROOT, requested_path)
 
 
@@ -485,5 +528,5 @@ if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
         port=int(os.environ.get("PORT", "5001")),
-        debug=True,
+        debug=False,
     )
